@@ -22,15 +22,6 @@ public class KonaBessCore {
     public static String dts_path;
     private static int dtb_num;
     public static String boot_name;
-
-    private enum dtb_types {
-        dtb,
-        kernel_dtb,
-        both
-    }
-
-    private static dtb_types dtb_type;
-
     public static void cleanEnv(Context context) throws IOException {
         Process process = new ProcessBuilder("sh").start();
         BufferedReader bufferedReader =
@@ -99,22 +90,17 @@ public class KonaBessCore {
         }
     }
 
-    public static void getBootImage(Context context) throws IOException {
-        try {
-            getVendorBootImage(context);
-            boot_name = "vendor_boot";
-        } catch (Exception e) {
-            getRealBootImage(context);
+    public static void getDtImage(Context context) throws IOException {
+            getRealDtImage(context);
             boot_name = "boot";
-        }
     }
 
-    private static void getRealBootImage(Context context) throws IOException {
+    private static void getRealDtImage(Context context) throws IOException {
         Process process = new ProcessBuilder("su").redirectErrorStream(true).start();
         OutputStreamWriter outputStreamWriter = new OutputStreamWriter((process.getOutputStream()));
         BufferedReader bufferedReader =
                 new BufferedReader(new InputStreamReader(process.getInputStream()));
-        outputStreamWriter.write("dd if=/dev/block/bootdevice/by-name/boot" + getCurrent("slot") + " of=" + context.getFilesDir().getAbsolutePath() + "/boot.img\n");
+        outputStreamWriter.write("dd if=/dev/block/bootdevice/by-name/boot" + getCurrent("slot") + " of=" + context.getFilesDir().getAbsolutePath() + "/dt.img\n");
         outputStreamWriter.write("chmod 644 " + context.getFilesDir().getAbsolutePath() + "/boot" +
                 ".img\n");
         outputStreamWriter.write("exit\n");
@@ -132,29 +118,6 @@ public class KonaBessCore {
         }
     }
 
-    private static void getVendorBootImage(Context context) throws IOException {
-        Process process = new ProcessBuilder("su").redirectErrorStream(true).start();
-        OutputStreamWriter outputStreamWriter = new OutputStreamWriter((process.getOutputStream()));
-        BufferedReader bufferedReader =
-                new BufferedReader(new InputStreamReader(process.getInputStream()));
-        outputStreamWriter.write("dd if=/dev/block/bootdevice/by-name/vendor_boot" + getCurrent(
-                "slot") + " of=" + context.getFilesDir().getAbsolutePath() + "/boot.img\n");
-        outputStreamWriter.write("chmod 644 " + context.getFilesDir().getAbsolutePath() + "/boot" +
-                ".img\n");
-        outputStreamWriter.write("exit\n");
-        outputStreamWriter.flush();
-        while (bufferedReader.readLine() != null) {
-        }
-        outputStreamWriter.close();
-        bufferedReader.close();
-        process.destroy();
-
-        File target = new File(context.getFilesDir().getAbsolutePath() + "/boot.img");
-        if (!target.exists() || !target.canRead()) {
-            target.delete();
-            throw new IOException();
-        }
-    }
 
     public static void writeBootImage(Context context) throws IOException {
         Process process = new ProcessBuilder("su").redirectErrorStream(true).start();
@@ -198,12 +161,12 @@ public class KonaBessCore {
     public static void checkDevice(Context context) throws IOException {
         dtbs = new ArrayList<>();
         for (int i = 0; i < dtb_num; i++) {
-            if (checkChip(context, i, "Exynos 982ß")) {
+            if (checkChip(context, i, "exynos9820")) {
                 dtb dtb = new dtb();
                 dtb.id = i;
                 dtb.type = ChipInfo.type.exynos9820;
                 dtbs.add(dtb);
-            } else if (checkChip(context, i, "Exynos 9825")) {
+            } else if (checkChip(context, i, "exynos9825")) {
                 dtb dtb = new dtb();
                 dtb.id = i;
                 dtb.type = ChipInfo.type.exynos9825;
@@ -241,7 +204,7 @@ public class KonaBessCore {
         BufferedReader bufferedReader =
                 new BufferedReader((new InputStreamReader(process.getInputStream())));
         outputStreamWriter.write("cd " + context.getFilesDir().getAbsolutePath() + "\n");
-        outputStreamWriter.write("./magiskboot unpack boot.img\n");
+        outputStreamWriter.write("./magiskboot unpack dt.img\n");
         outputStreamWriter.write("exit\n");
         outputStreamWriter.flush();
         StringBuilder log = new StringBuilder();
@@ -253,23 +216,7 @@ public class KonaBessCore {
         outputStreamWriter.close();
         process.destroy();
 
-        File kdtb_file = new File(context.getFilesDir().getAbsolutePath() + "/kernel_dtb");
         File dtb_file = new File(context.getFilesDir().getAbsolutePath() + "/dtb");
-
-        if (kdtb_file.exists() && dtb_file.exists()) {
-            dtb_type = dtb_types.both;
-            return;
-        }
-
-        if (kdtb_file.exists()) {
-            dtb_type = dtb_types.kernel_dtb;
-            return;
-        }
-
-        if (dtb_file.exists()) {
-            dtb_type = dtb_types.dtb;
-            return;
-        }
 
         throw new IOException();
     }
@@ -310,17 +257,7 @@ public class KonaBessCore {
 
     public static int dtb_split(Context context) throws IOException {
         File dtb = null;
-        if (dtb_type == dtb_types.dtb)
-            dtb = new File(context.getFilesDir().getAbsolutePath() + "/dtb");
-        else if (dtb_type == dtb_types.kernel_dtb)
-            dtb = new File(context.getFilesDir().getAbsolutePath() + "/kernel_dtb");
-        else if (dtb_type == dtb_types.both) {
-            dtb = new File(context.getFilesDir().getAbsolutePath() + "/dtb");
-            if (!new File(context.getFilesDir().getAbsolutePath() + "/kernel_dtb").delete())
-                throw new IOException();
-        } else {
-            throw new IOException();
-        }
+        dtb = new File(context.getFilesDir().getAbsolutePath() + "/dtb");
 
         byte[] dtb_bytes = new byte[(int) dtb.length()];
         FileInputStream fileInputStream = new FileInputStream(dtb);
@@ -391,8 +328,6 @@ public class KonaBessCore {
         BufferedReader bufferedReader =
                 new BufferedReader((new InputStreamReader(process.getInputStream())));
         outputStreamWriter.write("cd " + context.getFilesDir().getAbsolutePath() + "\n");
-        if (dtb_type == dtb_types.both)
-            outputStreamWriter.write("cp dtb kernel_dtb\n");
         outputStreamWriter.write("./magiskboot repack boot.img boot_new.img\n");
         outputStreamWriter.write("exit\n");
         outputStreamWriter.flush();
@@ -410,16 +345,7 @@ public class KonaBessCore {
 
     public static void linkDtbs(Context context) throws IOException {
         File out;
-
-        if (dtb_type == dtb_types.dtb)
-            out = new File(context.getFilesDir().getAbsolutePath() + "/dtb");
-        else if (dtb_type == dtb_types.kernel_dtb)
-            out = new File(context.getFilesDir().getAbsolutePath() + "/kernel_dtb");
-        else if (dtb_type == dtb_types.both) {
-            out = new File(context.getFilesDir().getAbsolutePath() + "/dtb");
-        } else {
-            throw new IOException();
-        }
+        out = new File(context.getFilesDir().getAbsolutePath() + "/dtb");
 
         FileOutputStream fileOutputStream = new FileOutputStream(out);
         for (int i = 0; i < dtb_num; i++) {

@@ -312,7 +312,7 @@ public class MainActivity extends Activity {
                 });
                 try {
                     if (!cross_device_debug)
-                        KonaBessCore.getBootImage(MainActivity.this);
+                        KonaBessCore.getDtImage(MainActivity.this);
                 } catch (Exception e) {
                     is_err = true;
                 }

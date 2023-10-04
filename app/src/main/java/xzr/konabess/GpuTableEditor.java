@@ -26,7 +26,7 @@ import java.util.List;
 import xzr.konabess.adapters.ParamAdapter;
 import xzr.konabess.utils.DialogUtil;
 import xzr.konabess.utils.DtsHelper;
-
+/*  8 columns      freq  down   up  stay  mif    little  middle   big  */
 public class GpuTableEditor {
     private static int bin_position;
     private static ArrayList<bin> bins;

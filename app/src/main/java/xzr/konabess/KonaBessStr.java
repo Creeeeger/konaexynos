@@ -7,7 +7,6 @@ public class KonaBessStr {
             return convert_bins_exynos9820(which, activity);
         else if (ChipInfo.which == ChipInfo.type.exynos9825)
             return convert_bins_exynos9825(which, activity);
-
         throw new Exception();
     }
 
