@@ -27,12 +27,9 @@ public class KonaBessStr {
     }
 
     public static String convert_level_params(String input, Activity activity) {
-        input = input.replace("qcom,", "");
+        input = input.replace("gpu_dvfs_table,", "");
         if (input.equals("gpu-freq"))
             return activity.getResources().getString(R.string.freq);
-        if (input.equals("level"))
-            return activity.getResources().getString(R.string.volt);
-
         return input;
     }
 

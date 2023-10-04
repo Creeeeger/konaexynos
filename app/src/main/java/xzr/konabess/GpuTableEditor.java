@@ -198,16 +198,11 @@ public class GpuTableEditor {
     }
 
     private static String generateSubtitle(String line) throws Exception {
-        String raw_name = DtsHelper.decode_hex_line(line).name;
-        if ("qcom,level".equals(raw_name) || "qcom,cx-level".equals(raw_name)) {
-            return GpuVoltEditor.levelint2str(DtsHelper.decode_int_line(line).value);
-        }
         return DtsHelper.shouldUseHex(line) ? DtsHelper.decode_hex_line(line).value :
                 DtsHelper.decode_int_line(line).value + "";
     }
 
-    private static void generateALevel(Activity activity, int last, int levelid,
-                                       LinearLayout page) throws Exception {
+    private static void generateALevel(Activity activity, int last, int levelid, LinearLayout page) throws Exception {
         ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
             @Override
             public void onBackPressed() {
@@ -255,8 +250,6 @@ public class GpuTableEditor {
                         spinner.setAdapter(new ArrayAdapter(activity,
                                 android.R.layout.simple_dropdown_item_1line,
                                 ChipInfo.rpmh_levels.level_str()));
-                        spinner.setSelection(GpuVoltEditor.levelint2int(Integer.parseInt(raw_value)));
-
                         new AlertDialog.Builder(activity)
                                 .setTitle(R.string.edit)
                                 .setView(spinner)
@@ -485,7 +478,7 @@ public class GpuTableEditor {
             long freq = getFrequencyFromLevel(level);
             if (freq == 0)
                 continue;
-            ;
+
             ParamAdapter.item item = new ParamAdapter.item();
             item.title = freq / 1000000 + "MHz";
             item.subtitle = "";

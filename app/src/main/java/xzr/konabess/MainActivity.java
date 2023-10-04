@@ -95,8 +95,7 @@ public class MainActivity extends Activity {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                                           int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             if (permission_worker != null) {
@@ -186,13 +185,6 @@ public class MainActivity extends Activity {
             button.setText(R.string.edit_gpu_freq_table);
             editor.addView(button);
             button.setOnClickListener(v -> new GpuTableEditor.gpuTableLogic(this, showdView).start());
-        }
-        {
-
-            Button button = new Button(this);
-            button.setText(R.string.edit_gpu_volt_table);
-            editor.addView(button);
-            button.setOnClickListener(v -> new GpuVoltEditor.gpuVoltLogic(this, showdView).start());
         }
 
         {

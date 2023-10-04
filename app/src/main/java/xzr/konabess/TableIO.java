@@ -32,7 +32,6 @@ public class TableIO {
         public static final String CHIP = "chip";
         public static final String DESCRIPTION = "desc";
         public static final String FREQ = "freq";
-        public static final String VOLT = "volt";
     }
 
     private static AlertDialog waiting_import;
@@ -40,11 +39,6 @@ public class TableIO {
     private static boolean decodeAndWriteData(JSONObject jsonObject) throws Exception {
         ArrayList<String> freq = new ArrayList<>(Arrays.asList(jsonObject.getString(json_keys.FREQ).split("\n")));
         GpuTableEditor.writeOut(GpuTableEditor.genBack(freq));
-        ArrayList<String> volt = new ArrayList<>(Arrays.asList(jsonObject.getString(json_keys.VOLT).split("\n")));
-        //Init again because the dts file has been updated
-        GpuVoltEditor.init();
-        GpuVoltEditor.decode();
-        GpuVoltEditor.writeOut(GpuVoltEditor.genBack(volt));
         return false;
     }
 
@@ -55,20 +49,12 @@ public class TableIO {
         return data.toString();
     }
 
-    private static String getVoltData() {
-        StringBuilder data = new StringBuilder();
-        for (String line : GpuVoltEditor.genTable())
-            data.append(line).append("\n");
-        return data.toString();
-    }
-
     private static String getConfig(String desc) throws IOException {
         JSONObject jsonObject = new JSONObject();
         try {
             jsonObject.put(json_keys.CHIP, ChipInfo.which);
             jsonObject.put(json_keys.DESCRIPTION, desc);
             jsonObject.put(json_keys.FREQ, getFreqData());
-            jsonObject.put(json_keys.VOLT, getVoltData());
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -130,8 +116,7 @@ public class TableIO {
 
         public void run() {
             error = false;
-            File out = new File(Environment.getExternalStorageDirectory().getAbsolutePath() +
-                    "/konabess-" + new SimpleDateFormat("MMddHHmmss").format(new Date()) + ".txt");
+            File out = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/konabess-" + new SimpleDateFormat("MMddHHmmss").format(new Date()) + ".txt");
             try {
                 BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(out));
                 bufferedWriter.write("konabess://" + getConfig(desc));
@@ -322,8 +307,7 @@ public class TableIO {
             try {
                 GpuTableEditor.init();
                 GpuTableEditor.decode();
-                GpuVoltEditor.init();
-                GpuVoltEditor.decode();
+
 
             } catch (Exception e) {
                 activity.runOnUiThread(() -> DialogUtil.showError(activity,

@@ -51,8 +51,7 @@ public class KonaBessCore {
     public static void reboot() throws IOException {
         Process process = new ProcessBuilder("su").redirectErrorStream(true).start();
         OutputStreamWriter outputStreamWriter = new OutputStreamWriter((process.getOutputStream()));
-        BufferedReader bufferedReader =
-                new BufferedReader(new InputStreamReader(process.getInputStream()));
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
         outputStreamWriter.write("svc power reboot\n");
         outputStreamWriter.write("exit\n");
         outputStreamWriter.flush();
@@ -62,34 +61,6 @@ public class KonaBessCore {
         bufferedReader.close();
         process.destroy();
     }
-
-    static String getCurrent(String name) {
-        switch (name.toLowerCase()) {
-            case "brand":
-                return SystemProperties.get("ro.product.brand", "");
-            case "name":
-                return SystemProperties.get("ro.product.name", "");
-            case "model":
-                return SystemProperties.get("ro.product.model", "");
-            case "board":
-                return SystemProperties.get("ro.product.board", "");
-            case "id":
-                return SystemProperties.get("ro.product.build.id", "");
-            case "version":
-                return SystemProperties.get("ro.product.build.version.release", "");
-            case "fingerprint":
-                return SystemProperties.get("ro.product.build.fingerprint", "");
-            case "manufacturer":
-                return SystemProperties.get("ro.product.manufacturer", "");
-            case "device":
-                return SystemProperties.get("ro.product.device", "");
-            case "slot":
-                return SystemProperties.get("ro.boot.slot_suffix", "");
-            default:
-                return null;
-        }
-    }
-
     public static void getDtImage(Context context) throws IOException {
             getRealDtImage(context);
             boot_name = "boot";
@@ -100,7 +71,7 @@ public class KonaBessCore {
         OutputStreamWriter outputStreamWriter = new OutputStreamWriter((process.getOutputStream()));
         BufferedReader bufferedReader =
                 new BufferedReader(new InputStreamReader(process.getInputStream()));
-        outputStreamWriter.write("dd if=/dev/block/bootdevice/by-name/boot" + getCurrent("slot") + " of=" + context.getFilesDir().getAbsolutePath() + "/dt.img\n");
+        outputStreamWriter.write("dd if=/dev/block/bootdevice/by-name/boot" + " of=" + context.getFilesDir().getAbsolutePath() + "/dt.img\n");
         outputStreamWriter.write("chmod 644 " + context.getFilesDir().getAbsolutePath() + "/boot" +
                 ".img\n");
         outputStreamWriter.write("exit\n");
@@ -124,8 +95,7 @@ public class KonaBessCore {
         OutputStreamWriter outputStreamWriter = new OutputStreamWriter((process.getOutputStream()));
         BufferedReader bufferedReader =
                 new BufferedReader(new InputStreamReader(process.getInputStream()));
-        outputStreamWriter.write("dd if=" + context.getFilesDir().getAbsolutePath() + "/boot_new" +
-                ".img of=/dev/block/bootdevice/by-name/" + boot_name + getCurrent("slot") + "\n");
+        outputStreamWriter.write("dd if=" + context.getFilesDir().getAbsolutePath() + "/boot_new" + ".img of=/dev/block/bootdevice/by-name/" + boot_name + "\n");
         outputStreamWriter.write("exit\n");
         outputStreamWriter.flush();
         while (bufferedReader.readLine() != null) {
