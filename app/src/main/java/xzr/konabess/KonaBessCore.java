@@ -132,20 +132,34 @@ public class KonaBessCore {
     public static void checkDevice(Context context) throws IOException {
         dtbs = new ArrayList<>();
         for (int i = 0; i < 1; i++) {
-            if (checkChip(context, i, "exynos9820")) {
-                System.out.println("1");
+            if (checkChip(context, "exynos9820")) {
                 dtb dtb = new dtb();
                 dtb.id = i;
                 dtb.type = ChipInfo.type.exynos9820;
                 dtbs.add(dtb);
-            } else if (checkChip(context, i, "exynos9825")) {
-                System.out.println("2");
+            } else if (checkChip(context, "exynos9825")) {
                 dtb dtb = new dtb();
                 dtb.id = i;
                 dtb.type = ChipInfo.type.exynos9825;
                 dtbs.add(dtb);
             }
         }
+    }
+    private static boolean checkChip(Context context, String chip) throws IOException {
+        boolean result = false;
+        Process process = new ProcessBuilder("su").start();
+        OutputStreamWriter outputStreamWriter = new OutputStreamWriter((process.getOutputStream()));
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        outputStreamWriter.write("cat " + context.getFilesDir().getAbsolutePath() + "/" + "0.dts | grep '" + chip + "'\n");
+        outputStreamWriter.write("exit\n");
+        outputStreamWriter.flush();
+        String s = bufferedReader.readLine();
+        if (s != null)
+            result = true;
+        outputStreamWriter.close();
+        bufferedReader.close();
+        process.destroy();
+        return result;
     }
     public static int getDtbIndex() throws IOException {
         int ret = -1;
@@ -209,23 +223,6 @@ public class KonaBessCore {
         ChipInfo.which = dtb.type;
     }
 
-    private static boolean checkChip(Context context, int index, String chip) throws IOException {
-        boolean result = false;
-        Process process = new ProcessBuilder("su").start();
-        OutputStreamWriter outputStreamWriter = new OutputStreamWriter((process.getOutputStream()));
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        outputStreamWriter.write("cat " + context.getFilesDir().getAbsolutePath() + "/" + "0.dts | grep model | grep '" + chip + "'\n");
-        outputStreamWriter.write("exit\n");
-        outputStreamWriter.flush();
-        String s = bufferedReader.readLine();
-        if (s != null)
-            result = true;
-        outputStreamWriter.close();
-        bufferedReader.close();
-        process.destroy();
-        System.out.println(result + "result");
-        return result;
-    }
     private static int toUnsignedByte(byte in) {
         return (int) in & 0xFF;
     }
