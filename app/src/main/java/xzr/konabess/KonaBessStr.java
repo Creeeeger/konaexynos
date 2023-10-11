@@ -11,17 +11,15 @@ public class KonaBessStr {
     }
 
     public static String convert_bins_exynos9820(int which, Activity activity) {
-        switch (which) {
-            case 0:
-                return activity.getResources().getString(R.string.e9820);
+        if (which == 0) {
+            return activity.getResources().getString(R.string.e9820);
         }
         return activity.getResources().getString(R.string.unknown_table) + which;
     }
 
     public static String convert_bins_exynos9825(int which, Activity activity) {
-        switch (which) {
-            case 0:
-                return activity.getResources().getString(R.string.e9825);
+        if (which == 0) {
+            return activity.getResources().getString(R.string.e9825);
         }
         return activity.getResources().getString(R.string.unknown_table) + which;
     }

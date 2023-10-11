@@ -8,7 +8,7 @@ public class ChipInfo {
         unknown
     }
 
-    public static int getMaxTableLevels(type type) {
+    public static int getMaxTableLevels() {
         return 11;
     }
 

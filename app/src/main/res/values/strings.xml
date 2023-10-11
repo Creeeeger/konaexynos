@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">KonaBess</string>
+    <string name="app_name">KonaExynos</string>
     <string name="environ_setup_failed">Failed when setting up the environment</string>
     <string name="storage_permission_failed">Unable to get storage permission</string>
     <string name="repack_and_flash">Repack and flash new image</string>
@@ -13,14 +13,13 @@
     <string name="release_at">Release at</string>
     <string name="visit_akr">Visit thread</string>
     <string name="edit_gpu_freq_table">Edit GPU freq table</string>
-    <string name="edit_gpu_volt_table">Edit GPU volt table</string>
     <string name="import_export">Import/Export</string>
     <string name="backuping_img">Doing backup, please wait</string>
     <string name="failed_backup">Failed when doing backup</string>
     <string name="backup_success">Done</string>
-    <string name="repacking">Repacking boot image, please wait</string>
+    <string name="repacking">Repacking DTB image, please wait</string>
     <string name="repack_failed">Failed when repacking</string>
-    <string name="flashing_boot">Flashing boot image. Please give root permission and wait.</string>
+    <string name="flashing_boot">Flashing DTB image. Please give root permission and wait.</string>
     <string name="flashing_failed">Failed when flashing the image, please check root permission.</string>
     <string name="reboot_complete_title">Reboot to complete changes</string>
     <string name="reboot_complete_msg">Would you like to reboot your device now?</string>
@@ -45,7 +44,6 @@
     <string name="unable_add_more">Unable to add more frequencies</string>
     <string name="new_item">New</string>
     <string name="new_desc">Add a new frequency</string>
-    <string name="new_desc_volt">Add a new voltage level</string>
     <string name="remove">Remove</string>
     <string name="remove_msg">Are you sure to remove %d MHz?</string>
     <string name="remove_msg_volt">Are you sure to remove the voltage level of %d MHz?</string>
@@ -58,15 +56,7 @@
     <string name="volt_freq_msg">This refers to the frequency corresponding to this voltage level.\nThe unit of frequency here is Hz, that is to say, add 6 zeros after the MHz frequency. You can view the frequency in MHz in the previous page.\nIf you don\'t know how many zeros to add, it is recommended to change only the first few digits of the number.</string>
     <string name="getting_volt">Getting GPU voltage table. Please wait.</string>
     <string name="getting_volt_failed">Failed when getting voltage table</string>
-    <string name="sdm865">Snapdragon 865</string>
-    <string name="sdm865p">Snapdragon 865+</string>
-    <string name="sdm865m">Snapdragon 865-</string>
     <string name="unknown_table">Unknown frequency table</string>
-    <string name="sdm865_singlebin">Snapdragon 865 (Android Q)</string>
-    <string name="sdm855">Snapdragon 855</string>
-    <string name="sdm855p">Snapdragon 855+</string>
-    <string name="sdm855_singlebin">Snapdragon 855 (Android P)</string>
-    <string name="sdm888_singlebin">Snapdragon 888 (old FW)</string>
     <string name="editvolt_msg">This refers to the voltage corresponding to this frequency. You can specify the voltage level to be used for this frequency.\nThe voltage increases from top to bottom.</string>
     <string name="help_gpufreq_aio">This is the working frequency of the GPU. You can change the available frequencies in the frequency table by changing this value.\nThe unit of frequency here is Hz, that is to say, add 6 zeros after the MHz frequency. You can view the frequency in MHz in the previous page.\nIf you don\'t know how many zeros to add, it is recommended to change only the first few digits of the number.</string>
     <string name="help_gpufreq">This is the working frequency of the GPU. You can change the available frequencies in the frequency table by changing this value.\nHowever, remember to make sure that the frequency can find the corresponding voltage in the voltage table, otherwise, it is impossible to boot the phone.\nThe unit of frequency here is Hz, that is to say, add 6 zeros after the MHz frequency. You can view the frequency in MHz in the previous menu. If you don\'t know how many zeros to add, it is recommended to modify only the first few digits of the number.\n</string>

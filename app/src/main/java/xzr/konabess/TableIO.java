@@ -1,5 +1,6 @@
 package xzr.konabess;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.os.Environment;
@@ -116,7 +117,7 @@ public class TableIO {
 
         public void run() {
             error = false;
-            File out = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/konabess-" + new SimpleDateFormat("MMddHHmmss").format(new Date()) + ".txt");
+            @SuppressLint("SimpleDateFormat") File out = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/konabess-" + new SimpleDateFormat("MMddHHmmss").format(new Date()) + ".txt");
             try {
                 BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(out));
                 bufferedWriter.write("konabess://" + getConfig(desc));
@@ -210,9 +211,7 @@ public class TableIO {
             if (uri == null)
                 return;
             error = false;
-            activity.runOnUiThread(() -> {
-                waiting_import.show();
-            });
+            activity.runOnUiThread(() -> waiting_import.show());
             try {
                 BufferedReader bufferedReader =
                         new BufferedReader(new InputStreamReader(activity.getContentResolver().openInputStream(uri)));

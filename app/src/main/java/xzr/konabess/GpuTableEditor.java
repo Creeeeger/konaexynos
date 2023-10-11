@@ -47,8 +47,7 @@ public class GpuTableEditor {
         lines_in_dts = new ArrayList<>();
         bins = new ArrayList<>();
         bin_position = -1;
-        BufferedReader bufferedReader =
-                new BufferedReader(new FileReader(new File(KonaBessCore.dts_path)));
+        BufferedReader bufferedReader = new BufferedReader(new FileReader(new File(KonaBessCore.dts_path)));
         String s;
         while ((s = bufferedReader.readLine()) != null) {
             lines_in_dts.add(s);
@@ -63,8 +62,7 @@ public class GpuTableEditor {
         int bracket = 0;
         while (++i < lines_in_dts.size()) {
             this_line = lines_in_dts.get(i).trim();
-            if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825)
-                    && this_line.contains("qcom,gpu-pwrlevels-")) {
+            if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && this_line.contains("gpu_dvfs_table")) {
                 start = i;
                 if (bin_position < 0)
                     bin_position = i;
@@ -89,15 +87,13 @@ public class GpuTableEditor {
                 }
                 i = start - 1;
                 start = -1;
-                continue;
             }
         }
     }
 
     private static int getBinID(String line, int prev_id) {
         line = line.trim();
-        line = line.replace(" {", "")
-                .replace("-", "");
+        line = line.replace(" {", "").replace("-", "");
         try {
             for (int i = line.length() - 1; i >= 0; i--) {
                 prev_id = Integer.parseInt(line.substring(i));
@@ -437,7 +433,7 @@ public class GpuTableEditor {
     }
 
     public static boolean canAddNewLevel(int binID, Context context) throws Exception {
-        int max_levels = ChipInfo.getMaxTableLevels(ChipInfo.which) - min_level_chip_offset();
+        int max_levels = ChipInfo.getMaxTableLevels() - min_level_chip_offset();
         if (bins.get(binID).levels.size() <= max_levels)
             return true;
         Toast.makeText(context, R.string.unable_add_more, Toast.LENGTH_SHORT).show();

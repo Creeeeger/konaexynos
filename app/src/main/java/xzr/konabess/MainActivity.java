@@ -143,7 +143,7 @@ public class MainActivity extends Activity {
             toolbar.addView(button);
             button.setOnClickListener(v -> new AlertDialog.Builder(this)
                     .setTitle(R.string.backup_old_image)
-                    .setMessage(getResources().getString(R.string.will_backup_to) + " /sdcard/" + KonaBessCore.boot_name + ".img")
+                    .setMessage(getResources().getString(R.string.will_backup_to) + " /sdcard/" + "dtb.img")
                     .setPositiveButton(R.string.ok, (dialog, which) -> {
                         runWithStoragePermission(this, new backupBoot(this));
                     })
@@ -167,14 +167,12 @@ public class MainActivity extends Activity {
                                     .setNegativeButton("Github",
                                             (dialog1, which1) -> MainActivity.this.startActivity(new Intent() {{
                                                 setAction(Intent.ACTION_VIEW);
-                                                setData(Uri.parse("https://github" +
-                                                        ".com/xzr467706992/KonaBess"));
+                                                setData(Uri.parse("https://github" + ".com/xzr467706992/KonaBess"));
                                             }}))
                                     .setNeutralButton(R.string.visit_akr,
                                             (dialog1, which1) -> MainActivity.this.startActivity(new Intent() {{
                                                 setAction(Intent.ACTION_VIEW);
-                                                setData(Uri.parse("https://www.akr-developers" +
-                                                        ".com/d/441"));
+                                                setData(Uri.parse("https://www.akr-developers" + ".com/d/441"));
                                             }})).create().show())
                     .create().show());
         }
@@ -211,7 +209,7 @@ public class MainActivity extends Activity {
                 waiting.show();
             });
             try {
-                KonaBessCore.backupBootImage(activity);
+                KonaBessCore.backupDtbImage(activity);
             } catch (Exception e) {
                 is_err = true;
             }
@@ -225,8 +223,6 @@ public class MainActivity extends Activity {
 
         }
     }
-
-
     class repackLogic extends Thread {
         boolean is_err;
         String error = "";
@@ -248,8 +244,7 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> {
                     waiting.dismiss();
                     if (is_err)
-                        DialogUtil.showDetailedError(MainActivity.this, R.string.repack_failed,
-                                error);
+                        DialogUtil.showDetailedError(MainActivity.this, R.string.repack_failed, error);
                 });
                 if (is_err)
                     return;
@@ -262,7 +257,7 @@ public class MainActivity extends Activity {
                 });
 
                 try {
-                    KonaBessCore.writeBootImage(MainActivity.this);
+                    KonaBessCore.writeDtbImage(MainActivity.this);
                 } catch (Exception e) {
                     is_err = true;
                 }
@@ -323,7 +318,7 @@ public class MainActivity extends Activity {
                     waiting.show();
                 });
                 try {
-                    KonaBessCore.bootImage2dts(MainActivity.this);
+                    KonaBessCore.dtbImage2dts(MainActivity.this);
                 } catch (Exception e) {
                     is_err = true;
                     error = e.getMessage();
@@ -331,8 +326,7 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> {
                     waiting.dismiss();
                     if (is_err)
-                        DialogUtil.showDetailedError(MainActivity.this, R.string.unpack_failed,
-                                error);
+                        DialogUtil.showDetailedError(MainActivity.this, R.string.unpack_failed, error);
                 });
                 if (is_err)
                     return;
@@ -401,5 +395,4 @@ public class MainActivity extends Activity {
     public static abstract class onBackPressedListener {
         public abstract void onBackPressed();
     }
-
 }

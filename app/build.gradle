@@ -8,8 +8,8 @@ android {
 
     defaultConfig {
         applicationId 'crecker.konaexynos'
-        minSdk 27
-        targetSdk 27
+        minSdk 29
+        targetSdk 29
         versionCode 23
         versionName '1.0'
     }

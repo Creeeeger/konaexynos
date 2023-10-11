@@ -20,7 +20,7 @@ public class AssetsUtil {
             InputStream is = context.getAssets().open(src);
             FileOutputStream fos = new FileOutputStream(new File(out));
             byte[] buffer = new byte[1024];
-            int byteCount = 0;
+            int byteCount;
             while ((byteCount = is.read(buffer)) != -1) {
                 fos.write(buffer, 0, byteCount);
             }
