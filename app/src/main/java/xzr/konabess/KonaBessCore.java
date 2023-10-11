@@ -113,7 +113,7 @@ public class KonaBessCore {
         BufferedReader bufferedReader = new BufferedReader((new InputStreamReader(process.getInputStream())));
         outputStreamWriter.write("cd " + context.getFilesDir().getAbsolutePath() + "\n");
         outputStreamWriter.write("./dtc -I dtb -O dts " + "01_dtbdump_samsung,armv8.dtb -o " + index + ".dts\n");
-        outputStreamWriter.write("rm -f " + index + ".dtb\n");
+        outputStreamWriter.write("rm -f " + "01_dtbdump_samsung,armv8.dtb\n");
         outputStreamWriter.write("exit\n");
         outputStreamWriter.flush();
         StringBuilder log = new StringBuilder();
@@ -203,7 +203,7 @@ public class KonaBessCore {
         Process process = new ProcessBuilder("sh").redirectErrorStream(true).start();
         OutputStreamWriter outputStreamWriter = new OutputStreamWriter((process.getOutputStream()));
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        outputStreamWriter.write("cp -f " + context.getFilesDir().getAbsolutePath() + "/dtb.img " + Environment.getExternalStorageDirectory().getAbsolutePath() + "/dtb.img\n");
+        outputStreamWriter.write("cp -f " + context.getFilesDir().getAbsolutePath() + "/dtb.img " + "/storage/emulated/0/dtb.img\n");
         outputStreamWriter.write("exit\n");
         outputStreamWriter.flush();
         while (bufferedReader.readLine() != null) {
@@ -280,11 +280,11 @@ public class KonaBessCore {
         dtb2bootImage(context);
     }
     private static void dts2dtb(Context context, int index) throws IOException {
-        Process process = new ProcessBuilder("sh").redirectErrorStream(true).start();
+        Process process = new ProcessBuilder("su").redirectErrorStream(true).start();
         OutputStreamWriter outputStreamWriter = new OutputStreamWriter(process.getOutputStream());
         BufferedReader bufferedReader = new BufferedReader((new InputStreamReader(process.getInputStream())));
         outputStreamWriter.write("cd " + context.getFilesDir().getAbsolutePath() + "\n");
-        outputStreamWriter.write("./dtc -I dts -O dtb " + index + ".dts -o " + index + ".dtb\n");
+        outputStreamWriter.write("./dtc -I dts -O dtb " + "0.dts -o " + "01_dtbdump_samsung,armv8.dtb\n");
         outputStreamWriter.write("exit\n");
         outputStreamWriter.flush();
         StringBuilder log = new StringBuilder();
@@ -305,7 +305,7 @@ public class KonaBessCore {
 
         FileOutputStream fileOutputStream = new FileOutputStream(out);
         for (int i = 0; i < 1; i++) {
-            File input = new File(context.getFilesDir().getAbsolutePath() + "/" + i + ".dtb");
+            File input = new File(context.getFilesDir().getAbsolutePath() + "/01_dtbdump_samsung,armv8.dtb");
             FileInputStream fileInputStream = new FileInputStream(input);
             byte[] b = new byte[(int) input.length()];
             if (fileInputStream.read(b) != input.length())

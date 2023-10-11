@@ -648,8 +648,7 @@ public class GpuTableEditor {
                 decode();
                 patch_throttle_level();
             } catch (Exception e) {
-                activity.runOnUiThread(() -> DialogUtil.showError(activity,
-                        R.string.getting_freq_table_failed));
+                activity.runOnUiThread(() -> DialogUtil.showError(activity, R.string.getting_freq_table_failed));
             }
 
             activity.runOnUiThread(() -> {
