@@ -1,17 +1,18 @@
 package xzr.konabess.utils;
 
-import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+
 import xzr.konabess.R;
 
 public class DialogUtil {
-    public static void showError(Activity activity, String text) {
+    public static void showError(AppCompatActivity activity, String text) {
         new AlertDialog.Builder(activity)
                 .setTitle(R.string.error)
                 .setMessage(text)
@@ -20,11 +21,11 @@ public class DialogUtil {
                 .create().show();
     }
 
-    public static void showError(Activity activity, int text_res) {
+    public static void showError(AppCompatActivity activity, int text_res) {
         showError(activity, activity.getResources().getString(text_res));
     }
 
-    public static void showDetailedError(Activity activity, String err, String detail) {
+    public static void showDetailedError(AppCompatActivity activity, String err, String detail) {
         err += "\n" + activity.getResources().getString(R.string.long_press_to_copy);
         ScrollView scrollView = new ScrollView(activity);
         TextView textView = new TextView(activity);
@@ -39,11 +40,11 @@ public class DialogUtil {
                 .create().show();
     }
 
-    public static void showDetailedError(Activity activity, int err, String detail) {
+    public static void showDetailedError(AppCompatActivity activity, int err, String detail) {
         showDetailedError(activity, activity.getResources().getString(err), detail);
     }
 
-    public static void showDetailedInfo(Activity activity, String title, String what,
+    public static void showDetailedInfo(AppCompatActivity activity, String title, String what,
                                         String detail) {
         what += "\n" + activity.getResources().getString(R.string.long_press_to_copy);
         ScrollView scrollView = new ScrollView(activity);
@@ -58,7 +59,7 @@ public class DialogUtil {
                 .create().show();
     }
 
-    public static void showDetailedInfo(Activity activity, int title, int what, String detail) {
+    public static void showDetailedInfo(AppCompatActivity activity, int title, int what, String detail) {
         showDetailedInfo(activity, activity.getResources().getString(title),
                 activity.getResources().getString(what), detail);
     }

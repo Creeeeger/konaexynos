@@ -1,8 +1,13 @@
 plugins {
     id 'com.android.application'
+
 }
 
 android {
+    dependencies{
+        implementation 'com.google.android.material:material:1.10.0'
+    }
+
     compileSdk 34
     buildToolsVersion '34.0.0'
 

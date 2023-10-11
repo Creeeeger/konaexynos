@@ -1,5 +1,5 @@
 package xzr.konabess;
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
 
 public class ChipInfo {
     public enum type {
@@ -12,12 +12,12 @@ public class ChipInfo {
         return 11;
     }
 
-    public static String name2chipdesc(String name, Activity activity) {
+    public static String name2chipdesc(String name, AppCompatActivity activity) {
         type t = type.valueOf(name);
         return name2chipdesc(t, activity);
     }
 
-    public static String name2chipdesc(type t, Activity activity) {
+    public static String name2chipdesc(type t, AppCompatActivity activity) {
         switch (t) {
             case exynos9820:
                 return activity.getResources().getString(R.string.e9820);

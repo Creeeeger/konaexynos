@@ -1,8 +1,10 @@
 package xzr.konabess;
 
-import android.app.Activity;
 import android.content.Context;
 import android.os.Environment;
+
+import androidx.appcompat.app.AppCompatActivity;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -192,7 +194,7 @@ public class KonaBessCore {
         ChipInfo.type type;
     }
 
-    public static void chooseTarget(dtb dtb, Activity activity) {
+    public static void chooseTarget(dtb dtb, AppCompatActivity activity) {
         dts_path = activity.getFilesDir().getAbsolutePath() + "/" + dtb.id + ".dts";
         ChipInfo.which = dtb.type;
     }

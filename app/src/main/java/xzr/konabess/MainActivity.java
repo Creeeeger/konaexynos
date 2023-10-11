@@ -2,7 +2,6 @@ package xzr.konabess;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -13,13 +12,16 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+
 import java.io.IOException;
 import java.util.ArrayList;
 
 import xzr.konabess.adapters.ParamAdapter;
 import xzr.konabess.utils.DialogUtil;
 
-public class MainActivity extends Activity {
+public class MainActivity extends AppCompatActivity {
     AlertDialog waiting;
     boolean cross_device_debug = false;
     onBackPressedListener onBackPressedListener = null;
@@ -57,7 +59,7 @@ public class MainActivity extends Activity {
 
     private static Thread permission_worker;
 
-    public static void runWithStoragePermission(Activity activity, Thread what) {
+    public static void runWithStoragePermission(AppCompatActivity activity, Thread what) {
         MainActivity.permission_worker = what;
         if (activity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             activity.requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
@@ -74,7 +76,7 @@ public class MainActivity extends Activity {
 
     private static fileWorker file_worker;
 
-    public static void runWithFilePath(Activity activity, fileWorker what) {
+    public static void runWithFilePath(AppCompatActivity activity, fileWorker what) {
         MainActivity.file_worker = what;
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("*/*");
@@ -194,11 +196,11 @@ public class MainActivity extends Activity {
     }
 
     class backupBoot extends Thread {
-        Activity activity;
+        AppCompatActivity activity;
         AlertDialog waiting;
         boolean is_err;
 
-        public backupBoot(Activity activity) {
+        public backupBoot(AppCompatActivity activity) {
             this.activity = activity;
         }
 

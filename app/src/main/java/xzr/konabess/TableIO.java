@@ -1,13 +1,14 @@
 package xzr.konabess;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.app.AlertDialog;
 import android.os.Environment;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -62,7 +63,7 @@ public class TableIO {
         return GzipUtils.compress(jsonObject.toString().getBytes(StandardCharsets.UTF_8));
     }
 
-    private static void import_edittext(Activity activity) {
+    private static void import_edittext(AppCompatActivity activity) {
         EditText editText = new EditText(activity);
         editText.setHint(activity.getResources().getString(R.string.paste_here));
 
@@ -80,7 +81,7 @@ public class TableIO {
         public abstract void onConfirm(String desc);
     }
 
-    private static void showExportDialog(Activity activity,
+    private static void showExportDialog(AppCompatActivity activity,
                                          ConfirmExportCallback confirmExportCallback) {
         EditText editText = new EditText(activity);
         editText.setHint(R.string.input_introduction_here);
@@ -95,7 +96,7 @@ public class TableIO {
                 .create().show();
     }
 
-    private static void export_cpy(Activity activity, String desc) {
+    private static void export_cpy(AppCompatActivity activity, String desc) {
         // TODO: clipboard
         try {
             DialogUtil.showDetailedInfo(activity, R.string.export_done, R.string.export_done_msg,
@@ -106,11 +107,11 @@ public class TableIO {
     }
 
     private static class exportToFile extends Thread {
-        Activity activity;
+        AppCompatActivity activity;
         boolean error;
         String desc;
 
-        public exportToFile(Activity activity, String desc) {
+        public exportToFile(AppCompatActivity activity, String desc) {
             this.activity = activity;
             this.desc = desc;
         }
@@ -136,12 +137,12 @@ public class TableIO {
     }
 
     private static class showDecodeDialog extends Thread {
-        Activity activity;
+        AppCompatActivity activity;
         String data;
         boolean error;
         JSONObject jsonObject;
 
-        public showDecodeDialog(Activity activity, String data) {
+        public showDecodeDialog(AppCompatActivity activity, String data) {
             this.activity = activity;
             this.data = data;
         }
@@ -200,10 +201,10 @@ public class TableIO {
     }
 
     private static class importFromFile extends MainActivity.fileWorker {
-        Activity activity;
+        AppCompatActivity activity;
         boolean error;
 
-        public importFromFile(Activity activity) {
+        public importFromFile(AppCompatActivity activity) {
             this.activity = activity;
         }
 
@@ -224,7 +225,7 @@ public class TableIO {
         }
     }
 
-    private static void generateView(Activity activity, LinearLayout page) {
+    private static void generateView(AppCompatActivity activity, LinearLayout page) {
         ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
             @Override
             public void onBackPressed() {
@@ -286,12 +287,12 @@ public class TableIO {
     }
 
     static class TableIOLogic extends Thread {
-        Activity activity;
+        AppCompatActivity activity;
         AlertDialog waiting;
         LinearLayout showedView;
         LinearLayout page;
 
-        public TableIOLogic(Activity activity, LinearLayout showedView) {
+        public TableIOLogic(AppCompatActivity activity, LinearLayout showedView) {
             this.activity = activity;
             this.showedView = showedView;
         }

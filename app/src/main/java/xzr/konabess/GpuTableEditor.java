@@ -1,7 +1,5 @@
 package xzr.konabess;
 
-import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Context;
 import android.text.InputType;
 import android.view.View;
@@ -13,6 +11,9 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -26,6 +27,7 @@ import java.util.List;
 import xzr.konabess.adapters.ParamAdapter;
 import xzr.konabess.utils.DialogUtil;
 import xzr.konabess.utils.DtsHelper;
+
 /*  8 columns      freq  down   up  stay  mif    little  middle   big  */
 public class GpuTableEditor {
     private static int bin_position;
@@ -198,7 +200,7 @@ public class GpuTableEditor {
                 DtsHelper.decode_int_line(line).value + "";
     }
 
-    private static void generateALevel(Activity activity, int last, int levelid, LinearLayout page) throws Exception {
+    private static void generateALevel(AppCompatActivity activity, int last, int levelid, LinearLayout page) throws Exception {
         ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
             @Override
             public void onBackPressed() {
@@ -446,7 +448,7 @@ public class GpuTableEditor {
         throw new Exception();
     }
 
-    private static void generateLevels(Activity activity, int id, LinearLayout page) throws Exception {
+    private static void generateLevels(AppCompatActivity activity, int id, LinearLayout page) throws Exception {
         ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
             @Override
             public void onBackPressed() {
@@ -572,7 +574,7 @@ public class GpuTableEditor {
         throw new Exception();
     }
 
-    private static void generateBins(Activity activity, LinearLayout page) throws Exception {
+    private static void generateBins(AppCompatActivity activity, LinearLayout page) throws Exception {
         ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
             @Override
             public void onBackPressed() {
@@ -603,7 +605,7 @@ public class GpuTableEditor {
         page.addView(listView);
     }
 
-    private static View generateToolBar(Activity activity) {
+    private static View generateToolBar(AppCompatActivity activity) {
         LinearLayout toolbar = new LinearLayout(activity);
         HorizontalScrollView horizontalScrollView = new HorizontalScrollView(activity);
         horizontalScrollView.addView(toolbar);
@@ -625,12 +627,12 @@ public class GpuTableEditor {
     }
 
     static class gpuTableLogic extends Thread {
-        Activity activity;
+        AppCompatActivity activity;
         AlertDialog waiting;
         LinearLayout showedView;
         LinearLayout page;
 
-        public gpuTableLogic(Activity activity, LinearLayout showedView) {
+        public gpuTableLogic(AppCompatActivity activity, LinearLayout showedView) {
             this.activity = activity;
             this.showedView = showedView;
         }
