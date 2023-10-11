@@ -17,10 +17,10 @@ import java.util.Arrays;
 import java.util.List;
 
 import xzr.konabess.utils.AssetsUtil;
+import xzr.konabess.utils.DialogUtil;
 
 public class KonaBessCore {
     public static String dts_path;
-    private static int dtb_num;
     public static void cleanEnv(Context context) throws IOException {
         Process process = new ProcessBuilder("sh").start();
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -33,7 +33,7 @@ public class KonaBessCore {
         process.destroy();
     }
 
-    private static final String[] fileList = {"dtc", "magiskboot"};
+    private static final String[] fileList = {"dtc", "magiskboot", "extract_dtb"};
 
     public static void setupEnv(Context context) throws IOException {
         for (String s : fileList) {
@@ -65,8 +65,8 @@ public class KonaBessCore {
         Process process = new ProcessBuilder("su").redirectErrorStream(true).start();
         OutputStreamWriter outputStreamWriter = new OutputStreamWriter((process.getOutputStream()));
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        outputStreamWriter.write("dd if=/dev/block/bootdevice/by-name/boot" + " of=" + context.getFilesDir().getAbsolutePath() + "/dtb.img\n");
-        outputStreamWriter.write("chmod 644 " + context.getFilesDir().getAbsolutePath() + "/dtb.img\n");
+        outputStreamWriter.write("dd if=/dev/block/by-name/dtb" + " of=" + context.getFilesDir().getAbsolutePath() + "/dtb.img\n");
+        outputStreamWriter.write("chmod 777 " + context.getFilesDir().getAbsolutePath() + "/dtb.img\n");
         outputStreamWriter.write("exit\n");
         outputStreamWriter.flush();
         while (bufferedReader.readLine() != null) {
@@ -83,17 +83,19 @@ public class KonaBessCore {
     }
     public static void dtbImage2dts(Context context) throws IOException {
         unpackBootImage(context);
-        dtb_num = dtb_split(context);
-        for (int i = 0; i < dtb_num; i++) {
+        for (int i = 0; i < 1; i++) {
             dtb2dts(context, i);
         }
     }
-    private static void unpackBootImage(Context context) throws IOException {
-        Process process = new ProcessBuilder("sh").redirectErrorStream(true).start();
+    public static void unpackBootImage(Context context) throws IOException {
+        Process process = new ProcessBuilder("su").redirectErrorStream(true).start();
         OutputStreamWriter outputStreamWriter = new OutputStreamWriter(process.getOutputStream());
         BufferedReader bufferedReader = new BufferedReader((new InputStreamReader(process.getInputStream())));
         outputStreamWriter.write("cd " + context.getFilesDir().getAbsolutePath() + "\n");
-        outputStreamWriter.write("./magiskboot unpack dtb.img\n");
+        outputStreamWriter.write("./extract_dtb dtb.img\n");
+        outputStreamWriter.write("cp -r dtb /storage/emulated/0\n");
+        outputStreamWriter.write("cp -r /storage/emulated/0/dtb /data/user/0/crecker.konaexynos/files\n");
+        outputStreamWriter.write("mv /storage/emulated/0/dtb/* .\n");
         outputStreamWriter.write("exit\n");
         outputStreamWriter.flush();
         StringBuilder log = new StringBuilder();
@@ -104,17 +106,13 @@ public class KonaBessCore {
         bufferedReader.close();
         outputStreamWriter.close();
         process.destroy();
-
-        File dtb_file = new File(context.getFilesDir().getAbsolutePath() + "/dtb");
-
-        throw new IOException();
     }
     private static void dtb2dts(Context context, int index) throws IOException {
-        Process process = new ProcessBuilder("sh").redirectErrorStream(true).start();
+        Process process = new ProcessBuilder("su").redirectErrorStream(true).start();
         OutputStreamWriter outputStreamWriter = new OutputStreamWriter(process.getOutputStream());
         BufferedReader bufferedReader = new BufferedReader((new InputStreamReader(process.getInputStream())));
         outputStreamWriter.write("cd " + context.getFilesDir().getAbsolutePath() + "\n");
-        outputStreamWriter.write("./dtc -I dtb -O dts " + index + ".dtb -o " + index + ".dts\n");
+        outputStreamWriter.write("./dtc -I dtb -O dts " + "01_dtbdump_samsung,armv8.dtb -o " + index + ".dts\n");
         outputStreamWriter.write("rm -f " + index + ".dtb\n");
         outputStreamWriter.write("exit\n");
         outputStreamWriter.flush();
@@ -133,13 +131,15 @@ public class KonaBessCore {
 
     public static void checkDevice(Context context) throws IOException {
         dtbs = new ArrayList<>();
-        for (int i = 0; i < dtb_num; i++) {
+        for (int i = 0; i < 1; i++) {
             if (checkChip(context, i, "exynos9820")) {
+                System.out.println("1");
                 dtb dtb = new dtb();
                 dtb.id = i;
                 dtb.type = ChipInfo.type.exynos9820;
                 dtbs.add(dtb);
             } else if (checkChip(context, i, "exynos9825")) {
+                System.out.println("2");
                 dtb dtb = new dtb();
                 dtb.id = i;
                 dtb.type = ChipInfo.type.exynos9825;
@@ -150,17 +150,27 @@ public class KonaBessCore {
     public static int getDtbIndex() throws IOException {
         int ret = -1;
         for (String line : getCmdline()) {
-            if (line.startsWith("androidboot.dtb_idx")) {
-                try {
-                    for (int i = line.length() - 1; i >= 0; i--) {
-                        ret = Integer.parseInt(line.substring(i));
-                    }
-                } catch (Exception ignored) {
-                }
+            if (line.startsWith("androidboot.dtbo_idx")) {
+                ret = 1;
             }
         }
         return ret;
     }
+
+    private static List<String> getCmdline() throws IOException {
+        Process process = new ProcessBuilder("su").start();
+        OutputStreamWriter outputStreamWriter = new OutputStreamWriter((process.getOutputStream()));
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        outputStreamWriter.write("cat /proc/cmdline\n");
+        outputStreamWriter.write("exit\n");
+        outputStreamWriter.flush();
+        String s = bufferedReader.readLine();
+        outputStreamWriter.close();
+        bufferedReader.close();
+        process.destroy();
+        return s != null ? Arrays.asList(s.split(" ")) : new ArrayList<>();
+    }
+
     public static void writeDtbImage(Context context) throws IOException {
         Process process = new ProcessBuilder("su").redirectErrorStream(true).start();
         OutputStreamWriter outputStreamWriter = new OutputStreamWriter((process.getOutputStream()));
@@ -201,10 +211,10 @@ public class KonaBessCore {
 
     private static boolean checkChip(Context context, int index, String chip) throws IOException {
         boolean result = false;
-        Process process = new ProcessBuilder("sh").start();
+        Process process = new ProcessBuilder("su").start();
         OutputStreamWriter outputStreamWriter = new OutputStreamWriter((process.getOutputStream()));
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        outputStreamWriter.write("cat " + context.getFilesDir().getAbsolutePath() + "/" + index + ".dts | grep model | grep '" + chip + "'\n");
+        outputStreamWriter.write("cat " + context.getFilesDir().getAbsolutePath() + "/" + "0.dts | grep model | grep '" + chip + "'\n");
         outputStreamWriter.write("exit\n");
         outputStreamWriter.flush();
         String s = bufferedReader.readLine();
@@ -213,6 +223,7 @@ public class KonaBessCore {
         outputStreamWriter.close();
         bufferedReader.close();
         process.destroy();
+        System.out.println(result + "result");
         return result;
     }
     private static int toUnsignedByte(byte in) {
@@ -265,7 +276,7 @@ public class KonaBessCore {
     }
 
     public static void dts2bootImage(Context context) throws IOException {
-        for (int i = 0; i < dtb_num; i++) {
+        for (int i = 0; i < 1; i++) {
             dts2dtb(context, i);
         }
         linkDtbs(context);
@@ -296,7 +307,7 @@ public class KonaBessCore {
         out = new File(context.getFilesDir().getAbsolutePath() + "/dtb");
 
         FileOutputStream fileOutputStream = new FileOutputStream(out);
-        for (int i = 0; i < dtb_num; i++) {
+        for (int i = 0; i < 1; i++) {
             File input = new File(context.getFilesDir().getAbsolutePath() + "/" + i + ".dtb");
             FileInputStream fileInputStream = new FileInputStream(input);
             byte[] b = new byte[(int) input.length()];
@@ -328,17 +339,5 @@ public class KonaBessCore {
             throw new IOException(log.toString());
     }
 
-    private static List<String> getCmdline() throws IOException {
-        Process process = new ProcessBuilder("su").start();
-        OutputStreamWriter outputStreamWriter = new OutputStreamWriter((process.getOutputStream()));
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        outputStreamWriter.write("cat /proc/cmdline\n");
-        outputStreamWriter.write("exit\n");
-        outputStreamWriter.flush();
-        String s = bufferedReader.readLine();
-        outputStreamWriter.close();
-        bufferedReader.close();
-        process.destroy();
-        return s != null ? Arrays.asList(s.split(" ")) : new ArrayList<>();
-    }
+
 }
