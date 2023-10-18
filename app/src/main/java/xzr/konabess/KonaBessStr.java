@@ -40,9 +40,4 @@ public class KonaBessStr {
             return activity.getResources().getString(R.string.help_acd);
         return "";
     }
-
-    public static String generic_help(AppCompatActivity activity) {
-        activity.getResources().getString(R.string.help_msg_aio);
-        return "";
-    }
 }

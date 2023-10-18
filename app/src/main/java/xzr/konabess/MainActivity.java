@@ -73,17 +73,7 @@ public class MainActivity extends AppCompatActivity {
     static class fileWorker extends Thread {
         public Uri uri;
     }
-
     private static fileWorker file_worker;
-
-    public static void runWithFilePath(AppCompatActivity activity, fileWorker what) {
-        MainActivity.file_worker = what;
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("*/*");
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        activity.startActivityForResult(intent, 0);
-    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -132,7 +122,6 @@ public class MainActivity extends AppCompatActivity {
         showdView.setOrientation(LinearLayout.VERTICAL);
         mainView.addView(showdView);
 
-        //ToolBar
         {
             Button button = new Button(this);
             button.setText(R.string.repack_and_flash);
@@ -145,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
             toolbar.addView(button);
             button.setOnClickListener(v -> new AlertDialog.Builder(this)
                     .setTitle(R.string.backup_old_image)
-                    .setMessage(getResources().getString(R.string.will_backup_to) + " /sdcard/" + "dtb.img")
+                    .setMessage(getResources().getString(R.string.will_backup_to) + " /storage/emulated/0/dtb.img")
                     .setPositiveButton(R.string.ok, (dialog, which) -> {
                         runWithStoragePermission(this, new backupBoot(this));
                     })
@@ -154,44 +143,9 @@ public class MainActivity extends AppCompatActivity {
         }
         {
             Button button = new Button(this);
-            button.setText(R.string.help);
-            toolbar.addView(button);
-            button.setOnClickListener(v -> new AlertDialog.Builder(MainActivity.this)
-                    .setTitle(R.string.help)
-                    .setMessage(KonaBessStr.generic_help(this))
-                    .setPositiveButton(R.string.ok, null)
-                    .setNeutralButton(R.string.about,
-                            (dialog, which) -> new AlertDialog.Builder(MainActivity.this)
-                                    .setTitle(R.string.about)
-                                    .setMessage(getResources().getString(R.string.author) + " " +
-                                            "xzr467706992 (LibXZR)\n" + getResources().getString(R.string.release_at) + " www.akr-developers.com\n")
-                                    .setPositiveButton(R.string.ok, null)
-                                    .setNegativeButton("Github",
-                                            (dialog1, which1) -> MainActivity.this.startActivity(new Intent() {{
-                                                setAction(Intent.ACTION_VIEW);
-                                                setData(Uri.parse("https://github" + ".com/xzr467706992/KonaBess"));
-                                            }}))
-                                    .setNeutralButton(R.string.visit_akr,
-                                            (dialog1, which1) -> MainActivity.this.startActivity(new Intent() {{
-                                                setAction(Intent.ACTION_VIEW);
-                                                setData(Uri.parse("https://www.akr-developers" + ".com/d/441"));
-                                            }})).create().show())
-                    .create().show());
-        }
-
-        //Editor
-        {
-            Button button = new Button(this);
             button.setText(R.string.edit_gpu_freq_table);
             editor.addView(button);
             button.setOnClickListener(v -> new GpuTableEditor.gpuTableLogic(this, showdView).start());
-        }
-
-        {
-            Button button = new Button(this);
-            button.setText(R.string.import_export);
-            editor.addView(button);
-            button.setOnClickListener(v -> new TableIO.TableIOLogic(this, showdView).start());
         }
     }
 
@@ -286,7 +240,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
     class unpackLogic extends Thread {
         String error = "";
         boolean is_err;
@@ -376,7 +329,6 @@ public class MainActivity extends AppCompatActivity {
                     }});
                 }
                 listView.setAdapter(new ParamAdapter(items, MainActivity.this));
-
                 AlertDialog dialog = new AlertDialog.Builder(MainActivity.this)
                         .setTitle(R.string.select_dtb_title)
                         .setMessage(R.string.select_dtb_msg)
@@ -393,7 +345,6 @@ public class MainActivity extends AppCompatActivity {
             });
         }
     }
-
     public static abstract class onBackPressedListener {
         public abstract void onBackPressed();
     }

@@ -28,6 +28,5 @@ public class AssetsUtil {
             is.close();
             fos.close();
         }
-
     }
 }
