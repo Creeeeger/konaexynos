@@ -81,7 +81,6 @@ public class GpuTableEditor {
         int start = -1;
         int end;
         int bracket = 0;
-
         while (++i < lines_in_dts.size()) {
             this_line = lines_in_dts.get(i).trim();
             if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && this_line.contains("gpu_dvfs_table = ")) {
@@ -95,9 +94,8 @@ public class GpuTableEditor {
             if (bracket == 1 && start >= 0 && (ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825)) {
                 end = i;
                 if (end >= start) {
-                    //[		gpu_dvfs_table = <0xab630 0x4e 0x64 0x9 0x1fefc8 0x163780 0x0 0x1bc560 0x9eb10 0x4e 0x62 0x5 0x1fefc8 0x163780 0x0 0x1fbd00 0x8ba60 0x4e 0x62 0x5 0x1b5fd0 0x0 0x0 0x0 0x69b68 0x4e 0x5f 0x1 0x14a140 0x0 0x0 0x0 0x5c0a8 0x4e 0x5a 0x1 0x14a140 0x0 0x0 0x0 0x4f588 0x4e 0x55 0x1 0xf78f0 0x0 0x0 0x0 0x3f7a0 0x4e 0x55 0x1 0xa50a0 0x0 0x0 0x0 0x30d40 0x4e 0x55 0x1 0xa50a0 0x0 0x0 0x0 0x26160 0x0 0x55 0x1 0xa50a0 0x0 0x0 0x0>;]
                     decode_bin(lines_in_dts.subList(start, end));
-                    lines_in_dts.subList(start, end + 1).clear();
+                    lines_in_dts.subList(start, end).clear();
                 } else {
                     throw new Exception();
                 }
@@ -107,73 +105,34 @@ public class GpuTableEditor {
         }
     }
 
-    private static int getBinID(String line, int prev_id) {
-        line = line.trim();
-        line = line.replace(" <", "").replace(" ", "");
-        try {
-            for (int i = line.length() - 1; i >= 0; i--) {
-                prev_id = Integer.parseInt(line.substring(i));
-                System.out.println(prev_id);
-            }
-        } catch (Exception ignored) {
-        }
-        return prev_id;
-    }
-
     private static void decode_bin(List<String> lines) throws Exception {
         bin bin = new bin();
         bin.header = new ArrayList<>();
         bin.levels = new ArrayList<>();
         bin.id = bins.size();
-        int i = 0;
-        int bracket = 0;
-        int start = 0;
-        int end;
-        bin.id = getBinID(lines.get(0), bin.id);
-        while (++i < lines.size() && bracket >= 0) {
-            String line = lines.get(i);
-
-            line = line.trim();
-            if (line.equals(""))
-                continue;
-
-            if (line.contains("{")) {
-                if (bracket != 0)
-                    throw new Exception();
-                start = i;
-                bracket++;
-                continue;
-            }
-
-            if (line.contains("}")) {
-                if (--bracket < 0)
-                    continue;
-                end = i;
-                if (end >= start)
-                    bin.levels.add(decode_level(lines.subList(start, end + 1)));
-                continue;
-            }
-
-            if (bracket == 0) {
-                bin.header.add(line);
-            }
+        int j = -1;
+        String nline = lines.get(0);
+        nline = nline.trim().replace("gpu_dvfs_table = <", "").replace(">;", "");
+        String[] hexArray = nline.split(" ");
+        int groupSize = 8;
+        String[][] result = new String[(hexArray.length + groupSize - 1) / groupSize][groupSize];
+        for (int i = 0; i < hexArray.length; i++) {
+            int row = i / groupSize;
+            int col = i % groupSize;
+            result[row][col] = hexArray[i];
+        }
+        while (++j < result.length) {
+            bin.levels.add(decode_level(result[j][0]));
         }
         bins.add(bin);
     }
 
-    private static level decode_level(List<String> lines) {
+    public static level decode_level(String lines) {
         level level = new level();
         level.lines = new ArrayList<>();
-
-        for (String line : lines) {
-            line = line.trim();
-            if (line.contains("{") || line.contains("}"))
-                continue;
-            if (line.contains("reg"))
-                continue;
-            level.lines.add(line);
-        }
-
+        lines = lines.trim();
+        level.lines.add(lines);
+        System.out.println(lines);
         return level;
     }
 
@@ -412,6 +371,7 @@ public class GpuTableEditor {
     }
 
     private static void generateLevels(AppCompatActivity activity, int id, LinearLayout page) throws Exception {
+        System.out.println("level activity");
         ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
             @Override
             public void onBackPressed() {
@@ -436,6 +396,7 @@ public class GpuTableEditor {
         }});
 
         for (level level : bins.get(id).levels) {
+            System.out.println("freq from ll");
             long freq = getFrequencyFromLevel(level);
             if (freq == 0)
                 continue;
@@ -538,6 +499,7 @@ public class GpuTableEditor {
     }
 
     private static void generateBins(AppCompatActivity activity, LinearLayout page) throws Exception {
+        System.out.println("bin generated");
         ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
             @Override
             public void onBackPressed() {
@@ -553,11 +515,13 @@ public class GpuTableEditor {
             item.title = KonaBessStr.convert_bins(bins.get(i).id, activity);
             item.subtitle = "";
             items.add(item);
+            System.out.println("bin added "+ item.title);
         }
 
         listView.setAdapter(new ParamAdapter(items, activity));
         listView.setOnItemClickListener((parent, view, position, id) -> {
             try {
+                System.out.println("levels genreieren ");
                 generateLevels(activity, position, page);
             } catch (Exception e) {
                 DialogUtil.showError(activity, R.string.error_occur);
