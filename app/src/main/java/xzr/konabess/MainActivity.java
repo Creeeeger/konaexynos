@@ -12,6 +12,7 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -22,9 +23,24 @@ import xzr.konabess.adapters.ParamAdapter;
 import xzr.konabess.utils.DialogUtil;
 
 public class MainActivity extends AppCompatActivity {
+    private static Thread permission_worker;
+    private static fileWorker file_worker;
     AlertDialog waiting;
     boolean cross_device_debug = false;
     onBackPressedListener onBackPressedListener = null;
+    LinearLayout mainView;
+    LinearLayout showdView;
+
+    public static void runWithStoragePermission(AppCompatActivity activity, Thread what) {
+        MainActivity.permission_worker = what;
+        if (activity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            activity.requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                    0);
+        } else {
+            what.start();
+            permission_worker = null;
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,23 +73,6 @@ public class MainActivity extends AppCompatActivity {
             super.onBackPressed();
     }
 
-    private static Thread permission_worker;
-
-    public static void runWithStoragePermission(AppCompatActivity activity, Thread what) {
-        MainActivity.permission_worker = what;
-        if (activity.checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            activity.requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
-                    0);
-        } else {
-            what.start();
-            permission_worker = null;
-        }
-    }
-
-    static class fileWorker extends Thread {
-        public Uri uri;
-    }
-    private static fileWorker file_worker;
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -87,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             if (permission_worker != null) {
@@ -98,9 +97,6 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, R.string.storage_permission_failed, Toast.LENGTH_SHORT).show();
         }
     }
-
-    LinearLayout mainView;
-    LinearLayout showdView;
 
     void showMainView() {
         onBackPressedListener = null;
@@ -135,9 +131,7 @@ public class MainActivity extends AppCompatActivity {
             button.setOnClickListener(v -> new AlertDialog.Builder(this)
                     .setTitle(R.string.backup_old_image)
                     .setMessage(getResources().getString(R.string.will_backup_to) + " /storage/emulated/0/dtb.img")
-                    .setPositiveButton(R.string.ok, (dialog, which) -> {
-                        runWithStoragePermission(this, new backupBoot(this));
-                    })
+                    .setPositiveButton(R.string.ok, (dialog, which) -> runWithStoragePermission(this, new backupBoot(this)))
                     .setNegativeButton(R.string.cancel, null)
                     .create().show());
         }
@@ -147,6 +141,14 @@ public class MainActivity extends AppCompatActivity {
             editor.addView(button);
             button.setOnClickListener(v -> new GpuTableEditor.gpuTableLogic(this, showdView).start());
         }
+    }
+
+    static class fileWorker extends Thread {
+        public Uri uri;
+    }
+
+    public static abstract class onBackPressedListener {
+        public abstract void onBackPressed();
     }
 
     class backupBoot extends Thread {
@@ -179,6 +181,7 @@ public class MainActivity extends AppCompatActivity {
 
         }
     }
+
     class repackLogic extends Thread {
         boolean is_err;
         String error = "";
@@ -240,6 +243,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
     class unpackLogic extends Thread {
         String error = "";
         boolean is_err;
@@ -344,8 +348,5 @@ public class MainActivity extends AppCompatActivity {
                 });
             });
         }
-    }
-    public static abstract class onBackPressedListener {
-        public abstract void onBackPressed();
     }
 }

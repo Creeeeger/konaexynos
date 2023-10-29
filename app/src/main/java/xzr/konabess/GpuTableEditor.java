@@ -28,7 +28,26 @@ import xzr.konabess.adapters.ParamAdapter;
 import xzr.konabess.utils.DialogUtil;
 import xzr.konabess.utils.DtsHelper;
 
-/*  8 columns      freq  down   up  stay  mif    little  middle   big  */
+/*
+&mali {
+        interactive_info = <260000 94 0>;
+        gpu_dvfs_table_size = <9 8>; <row col>
+        /*  8 columns      freq  down   up  stay  mif    little  middle   big
+        gpu_dvfs_table = <  702000    78  100   9  2093000 1456000       0 1820000
+        650000    78   98   5  2093000 1456000       0 2080000
+        572000    78   98   5  1794000       0       0       0
+        433000    78   95   1  1352000       0       0       0
+        377000    78   90   1  1352000       0       0       0
+        325000    78   85   1  1014000       0       0       0
+        260000    78   85   1   676000       0       0       0
+        200000    78   85   1   676000       0       0       0
+        156000     0   85   1   676000       0       0       0 >;
+        gpu_max_clock = <702000>;
+        gpu_max_clock_limit = <702000>;
+        gpu_min_clock = <156000>;
+        gpu_dvfs_start_clock = <260000>;
+        gpu_dvfs_bl_config_clock = <156000>;
+        };*/
 public class GpuTableEditor {
     private static int bin_position;
     private static ArrayList<bin> bins;
@@ -49,7 +68,7 @@ public class GpuTableEditor {
         lines_in_dts = new ArrayList<>();
         bins = new ArrayList<>();
         bin_position = -1;
-        BufferedReader bufferedReader = new BufferedReader(new FileReader(new File(KonaBessCore.dts_path)));
+        BufferedReader bufferedReader = new BufferedReader(new FileReader(KonaBessCore.dts_path));
         String s;
         while ((s = bufferedReader.readLine()) != null) {
             lines_in_dts.add(s);
@@ -62,27 +81,22 @@ public class GpuTableEditor {
         int start = -1;
         int end;
         int bracket = 0;
+
         while (++i < lines_in_dts.size()) {
             this_line = lines_in_dts.get(i).trim();
-            if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && this_line.contains("gpu_dvfs_table")) {
+            if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && this_line.contains("gpu_dvfs_table = ")) {
                 start = i;
                 if (bin_position < 0)
                     bin_position = i;
-                if (bracket != 0)
-                    throw new Exception();
                 bracket++;
                 continue;
             }
 
-            if (this_line.contains("{") && start >= 0)
-                bracket++;
-            if (this_line.contains("}") && start >= 0)
-                bracket--;
-
-            if (bracket == 0 && start >= 0 && (ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825)) {
+            if (bracket == 1 && start >= 0 && (ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825)) {
                 end = i;
                 if (end >= start) {
-                    decode_bin(lines_in_dts.subList(start, end + 1));
+                    //[		gpu_dvfs_table = <0xab630 0x4e 0x64 0x9 0x1fefc8 0x163780 0x0 0x1bc560 0x9eb10 0x4e 0x62 0x5 0x1fefc8 0x163780 0x0 0x1fbd00 0x8ba60 0x4e 0x62 0x5 0x1b5fd0 0x0 0x0 0x0 0x69b68 0x4e 0x5f 0x1 0x14a140 0x0 0x0 0x0 0x5c0a8 0x4e 0x5a 0x1 0x14a140 0x0 0x0 0x0 0x4f588 0x4e 0x55 0x1 0xf78f0 0x0 0x0 0x0 0x3f7a0 0x4e 0x55 0x1 0xa50a0 0x0 0x0 0x0 0x30d40 0x4e 0x55 0x1 0xa50a0 0x0 0x0 0x0 0x26160 0x0 0x55 0x1 0xa50a0 0x0 0x0 0x0>;]
+                    decode_bin(lines_in_dts.subList(start, end));
                     lines_in_dts.subList(start, end + 1).clear();
                 } else {
                     throw new Exception();
@@ -95,10 +109,11 @@ public class GpuTableEditor {
 
     private static int getBinID(String line, int prev_id) {
         line = line.trim();
-        line = line.replace(" {", "").replace("-", "");
+        line = line.replace(" <", "").replace(" ", "");
         try {
             for (int i = line.length() - 1; i >= 0; i--) {
                 prev_id = Integer.parseInt(line.substring(i));
+                System.out.println(prev_id);
             }
         } catch (Exception ignored) {
         }
@@ -165,7 +180,7 @@ public class GpuTableEditor {
     public static List<String> genTable() {
         ArrayList<String> lines = new ArrayList<>();
         if (ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) {
-            lines.add("qcom,gpu-pwrlevels {");
+            lines.add("gpu_dvfs_table = <");
             lines.addAll(bins.get(0).header);
             for (int pwr_level_id = 0; pwr_level_id < bins.get(0).levels.size(); pwr_level_id++) {
                 lines.add("qcom,gpu-pwrlevel@" + pwr_level_id + " {");
@@ -380,59 +395,7 @@ public class GpuTableEditor {
         }
     }
 
-    private static void patch_throttle_level_old() throws Exception {
-        boolean started = false;
-        int bracket = 0;
-        for (int i = 0; i < lines_in_dts.size(); i++) {
-            String line = lines_in_dts.get(i);
 
-            if (line.contains("qcom,kgsl-3d0") && line.contains("{")) {
-                started = true;
-                bracket++;
-                continue;
-            }
-
-            if (line.contains("{")) {
-                bracket++;
-                continue;
-            }
-
-            if (line.contains("}")) {
-                bracket--;
-                if (bracket == 0)
-                    break;
-                continue;
-            }
-
-            if (!started)
-                continue;
-
-            if (line.contains("qcom,throttle-pwrlevel")) {
-                lines_in_dts.set(i,
-                        DtsHelper.encodeIntOrHexLine(DtsHelper.decode_int_line(line).name,
-                                "0"));
-            }
-
-        }
-    }
-
-    private static void patch_throttle_level() throws Exception {
-        if (ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) {
-            patch_throttle_level_old();
-            return;
-        }
-        for (int bin_id = 0; bin_id < bins.size(); bin_id++) {
-            for (int i = 0; i < bins.get(bin_id).header.size(); i++) {
-                String line = bins.get(bin_id).header.get(i);
-                if (line.contains("qcom,throttle-pwrlevel")) {
-                    bins.get(bin_id).header.set(i,
-                            DtsHelper.encodeIntOrHexLine(
-                                    DtsHelper.decode_int_line(line).name, "0"));
-                    break;
-                }
-            }
-        }
-    }
 
     public static boolean canAddNewLevel(int binID, Context context) throws Exception {
         int max_levels = ChipInfo.getMaxTableLevels() - min_level_chip_offset();
@@ -567,7 +530,7 @@ public class GpuTableEditor {
 
     private static long getFrequencyFromLevel(level level) throws Exception {
         for (String line : level.lines) {
-            if (line.contains("qcom,gpu-freq")) {
+            if (line.contains("gpu_dvfs_table")) {
                 return DtsHelper.decode_int_line(line).value;
             }
         }
@@ -646,7 +609,6 @@ public class GpuTableEditor {
             try {
                 init();
                 decode();
-                patch_throttle_level();
             } catch (Exception e) {
                 activity.runOnUiThread(() -> DialogUtil.showError(activity, R.string.getting_freq_table_failed));
             }
@@ -660,11 +622,10 @@ public class GpuTableEditor {
                 try {
                     generateBins(activity, page);
                 } catch (Exception e) {
-                    DialogUtil.showError(activity, R.string.getting_freq_table_failed);
+                    DialogUtil.showError(activity, R.string.app_name);
                 }
                 showedView.addView(page);
             });
-
         }
     }
 }
