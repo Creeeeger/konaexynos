@@ -45,7 +45,7 @@
     <string name="new_item">New</string>
     <string name="new_desc">Add a new frequency</string>
     <string name="remove">Remove</string>
-    <string name="remove_msg">Are you sure to remove %d MHz?</string>
+    <string name="remove_msg">Are you sure to remove %d KHz?</string>
     <string name="remove_msg_volt">Are you sure to remove the voltage level of %d MHz?</string>
     <string name="save_freq_table">Save GPU freq table</string>
     <string name="getting_freq_table">Getting GPU freq table. Please wait.</string>

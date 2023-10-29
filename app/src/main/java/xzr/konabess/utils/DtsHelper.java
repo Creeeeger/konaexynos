@@ -2,9 +2,7 @@ package xzr.konabess.utils;
 
 public class DtsHelper {
     public static boolean shouldUseHex(String line) {
-        if (line.contains("qcom,acd-level"))
-            return true;
-        return false;
+        return true;
     }
 
     public static class intLine {
@@ -75,27 +73,13 @@ public class DtsHelper {
     public static intLine decode_int_line(String line) throws Exception {
         intLine intLine = new intLine();
         line = line.trim();
-        int i;
-        for (i = 0; i < line.length(); i++) {
-            if (line.startsWith("=", i)) {
-                break;
-            }
-        }
-        if (i == line.length())
-            throw new Exception();
-        intLine.name = line.substring(0, i);
+        intLine.name = line;
         intLine.name = intLine.name.trim();
-
-        String value = line.substring(i + 1);
+        String value = line;
         if (value.contains("\"")) {
             intLine.value = decode_stringed_int(value);
             return intLine;
         }
-
-        value = value.replace("<", "")
-                .replace(">", "")
-                .replace(";", "");
-
         if (value.contains("0x")) {
             value = value.replace("0x", "").trim();
             intLine.value = Long.parseLong(value, 16);
@@ -103,7 +87,6 @@ public class DtsHelper {
             value = value.trim();
             intLine.value = Long.parseLong(value);
         }
-
         return intLine;
     }
 

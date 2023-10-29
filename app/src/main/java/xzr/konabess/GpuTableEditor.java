@@ -132,7 +132,6 @@ public class GpuTableEditor {
         level.lines = new ArrayList<>();
         lines = lines.trim();
         level.lines.add(lines);
-        System.out.println(lines);
         return level;
     }
 
@@ -371,7 +370,6 @@ public class GpuTableEditor {
     }
 
     private static void generateLevels(AppCompatActivity activity, int id, LinearLayout page) throws Exception {
-        System.out.println("level activity");
         ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
             @Override
             public void onBackPressed() {
@@ -396,13 +394,12 @@ public class GpuTableEditor {
         }});
 
         for (level level : bins.get(id).levels) {
-            System.out.println("freq from ll");
             long freq = getFrequencyFromLevel(level);
             if (freq == 0)
                 continue;
 
             ParamAdapter.item item = new ParamAdapter.item();
-            item.title = freq / 1000000 + "MHz";
+            item.title = freq / 1000 + "KHz";
             item.subtitle = "";
             items.add(item);
         }
@@ -417,13 +414,12 @@ public class GpuTableEditor {
                 try {
                     if (!canAddNewLevel(id, activity))
                         return;
-                    bins.get(id).levels.add(bins.get(id).levels.size() - min_level_chip_offset(),
-                            level_clone(bins.get(id).levels.get(bins.get(id).levels.size() - min_level_chip_offset())));
+                    bins.get(id).levels.add(bins.get(id).levels.size() - min_level_chip_offset(), level_clone(bins.get(id).levels.get(bins.get(id).levels.size() - min_level_chip_offset())));
                     generateLevels(activity, id, page);
                     offset_initial_level(id, 1);
                     offset_ca_target_level(id, 1);
                 } catch (Exception e) {
-                    DialogUtil.showError(activity, R.string.error_occur);
+                    DialogUtil.showError(activity, "Can't add new level");
                 }
                 return;
             }
@@ -443,7 +439,7 @@ public class GpuTableEditor {
                     offset_initial_level(id, 1);
                     offset_ca_target_level(id, 1);
                 } catch (Exception e) {
-                    DialogUtil.showError(activity, R.string.error_occur);
+                    DialogUtil.showError(activity, "pos 1 error");
                 }
                 return;
             }
@@ -451,7 +447,7 @@ public class GpuTableEditor {
             try {
                 generateALevel(activity, id, position, page);
             } catch (Exception e) {
-                DialogUtil.showError(activity, R.string.error_occur);
+                DialogUtil.showError(activity,"pos 2 error");
             }
         });
 
@@ -463,8 +459,7 @@ public class GpuTableEditor {
             try {
                 new AlertDialog.Builder(activity)
                         .setTitle(R.string.remove)
-                        .setMessage(String.format(activity.getResources().getString(R.string.remove_msg),
-                                getFrequencyFromLevel(bins.get(id).levels.get(position - 2)) / 1000000))
+                        .setMessage(String.format(activity.getResources().getString(R.string.remove_msg), getFrequencyFromLevel(bins.get(id).levels.get(position - 2)) / 1000))
                         .setPositiveButton(R.string.yes, (dialog, which) -> {
                             bins.get(id).levels.remove(position - 2);
                             try {
@@ -472,7 +467,7 @@ public class GpuTableEditor {
                                 offset_initial_level(id, -1);
                                 offset_ca_target_level(id, -1);
                             } catch (Exception e) {
-                                DialogUtil.showError(activity, R.string.error_occur);
+                                DialogUtil.showError(activity, "remove freq error");
                             }
                         })
                         .setNegativeButton(R.string.no, null)
@@ -484,14 +479,13 @@ public class GpuTableEditor {
         });
 
         listView.setAdapter(new ParamAdapter(items, activity));
-
         page.removeAllViews();
         page.addView(listView);
     }
 
     private static long getFrequencyFromLevel(level level) throws Exception {
         for (String line : level.lines) {
-            if (line.contains("gpu_dvfs_table")) {
+            if (line.contains("0x")) {
                 return DtsHelper.decode_int_line(line).value;
             }
         }
@@ -499,7 +493,6 @@ public class GpuTableEditor {
     }
 
     private static void generateBins(AppCompatActivity activity, LinearLayout page) throws Exception {
-        System.out.println("bin generated");
         ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
             @Override
             public void onBackPressed() {
@@ -515,13 +508,11 @@ public class GpuTableEditor {
             item.title = KonaBessStr.convert_bins(bins.get(i).id, activity);
             item.subtitle = "";
             items.add(item);
-            System.out.println("bin added "+ item.title);
         }
 
         listView.setAdapter(new ParamAdapter(items, activity));
         listView.setOnItemClickListener((parent, view, position, id) -> {
             try {
-                System.out.println("levels genreieren ");
                 generateLevels(activity, position, page);
             } catch (Exception e) {
                 DialogUtil.showError(activity, R.string.error_occur);
