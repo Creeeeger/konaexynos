@@ -3,13 +3,11 @@ package xzr.konabess;
 import android.content.Context;
 import android.text.InputType;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
-import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -22,6 +20,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import xzr.konabess.adapters.ParamAdapter;
@@ -105,7 +104,7 @@ public class GpuTableEditor {
         }
     }
 
-    private static void decode_bin(List<String> lines) throws Exception {
+    private static void decode_bin(List<String> lines) {
         bin bin = new bin();
         bin.header = new ArrayList<>();
         bin.levels = new ArrayList<>();
@@ -169,8 +168,7 @@ public class GpuTableEditor {
     }
 
     private static String generateSubtitle(String line) throws Exception {
-        return DtsHelper.shouldUseHex(line) ? DtsHelper.decode_hex_line(line).value :
-                DtsHelper.decode_int_line(line).value + "";
+        return DtsHelper.shouldUseHex() ? DtsHelper.decode_hex_line(line).value : DtsHelper.decode_int_line(line).value + "";
     }
 
     private static void generateALevel(AppCompatActivity activity, int last, int levelid, LinearLayout page) throws Exception {
@@ -194,8 +192,7 @@ public class GpuTableEditor {
 
         for (String line : bins.get(last).levels.get(levelid).lines) {
             items.add(new ParamAdapter.item() {{
-                title = KonaBessStr.convert_level_params(DtsHelper.decode_hex_line(line).name,
-                        activity);
+                title = KonaBessStr.convert_level_params(DtsHelper.decode_hex_line(line).name, activity);
                 subtitle = generateSubtitle(line);
             }});
         }
@@ -206,77 +203,32 @@ public class GpuTableEditor {
                     generateLevels(activity, last, page);
                     return;
                 }
-                String raw_name =
-                        DtsHelper.decode_hex_line(bins.get(last).levels.get(levelid).lines.get(position - 1)).name;
-                String raw_value =
-                        DtsHelper.shouldUseHex(bins.get(last).levels.get(levelid).lines.get(position - 1))
-                                ?
-                                DtsHelper.decode_hex_line(bins.get(last).levels.get(levelid).lines.get(position - 1)).value
-                                :
-                                DtsHelper.decode_int_line(bins.get(last).levels.get(levelid).lines.get(position - 1)).value + "";
+                String raw_name = DtsHelper.decode_hex_line(bins.get(last).levels.get(levelid).lines.get(position - 1)).name;
+                String raw_value = DtsHelper.shouldUseHex() ? DtsHelper.decode_hex_line(bins.get(last).levels.get(levelid).lines.get(position - 1)).value : DtsHelper.decode_int_line(bins.get(last).levels.get(levelid).lines.get(position - 1)).value + "";
+                EditText editText = new EditText(activity);
+                editText.setInputType(InputType.TYPE_CLASS_NUMBER);
+                editText.setText(raw_value);
+                new AlertDialog.Builder(activity)
+                        .setTitle(activity.getResources().getString(R.string.edit) + " \"" + items.get(position).title + "\"")
+                        .setView(editText)
+                        .setMessage(KonaBessStr.help(raw_name, activity))
+                        .setPositiveButton(R.string.save, (dialog, which) -> {
+                            try {
+                                bins.get(last).levels.get(levelid).lines.set(position - 1, DtsHelper.inputToHex(editText.getText().toString()));
+                                generateALevel(activity, last, levelid, page);
+                                Toast.makeText(activity, R.string.save_success, Toast.LENGTH_SHORT).show();
+                            } catch (Exception e) {
+                                DialogUtil.showError(activity, "Save new level failed");
+                            }
+                        })
+                        .setNegativeButton(R.string.cancel, null)
+                        .create().show();
 
-                if (raw_name.equals("qcom,level") || raw_name.equals("qcom,cx-level")) {
-                    try {
-                        Spinner spinner = new Spinner(activity);
-                        spinner.setAdapter(new ArrayAdapter(activity,
-                                android.R.layout.simple_dropdown_item_1line,
-                                ChipInfo.rpmh_levels.level_str()));
-                        new AlertDialog.Builder(activity)
-                                .setTitle(R.string.edit)
-                                .setView(spinner)
-                                .setMessage(R.string.editvolt_msg)
-                                .setPositiveButton(R.string.save, (dialog, which) -> {
-                                    try {
-                                        bins.get(last).levels.get(levelid).lines.set(
-                                                position - 1,
-                                                DtsHelper.encodeIntOrHexLine(raw_name,
-                                                        ChipInfo.rpmh_levels.levels()[spinner.getSelectedItemPosition()] + ""));
-                                        generateALevel(activity, last, levelid, page);
-                                        Toast.makeText(activity, R.string.save_success,
-                                                Toast.LENGTH_SHORT).show();
-                                    } catch (Exception exception) {
-                                        DialogUtil.showError(activity, R.string.save_failed);
-                                        exception.printStackTrace();
-                                    }
-                                })
-                                .setNegativeButton(R.string.cancel, null)
-                                .create().show();
-
-                    } catch (Exception e) {
-                        DialogUtil.showError(activity, R.string.error_occur);
-                    }
-                } else {
-                    EditText editText = new EditText(activity);
-                    editText.setInputType(DtsHelper.shouldUseHex(raw_name) ?
-                            InputType.TYPE_CLASS_TEXT : InputType.TYPE_CLASS_NUMBER);
-                    editText.setText(raw_value);
-                    new AlertDialog.Builder(activity)
-                            .setTitle(activity.getResources().getString(R.string.edit) + " \"" + items.get(position).title + "\"")
-                            .setView(editText)
-                            .setMessage(KonaBessStr.help(raw_name, activity))
-                            .setPositiveButton(R.string.save, (dialog, which) -> {
-                                try {
-                                    bins.get(last).levels.get(levelid).lines.set(
-                                            position - 1,
-                                            DtsHelper.encodeIntOrHexLine(raw_name,
-                                                    editText.getText().toString()));
-                                    generateALevel(activity, last, levelid, page);
-                                    Toast.makeText(activity, R.string.save_success,
-                                            Toast.LENGTH_SHORT).show();
-                                } catch (Exception e) {
-                                    DialogUtil.showError(activity, R.string.save_failed);
-                                }
-                            })
-                            .setNegativeButton(R.string.cancel, null)
-                            .create().show();
-                }
             } catch (Exception e) {
                 DialogUtil.showError(activity, R.string.error_occur);
             }
         });
-
         listView.setAdapter(new ParamAdapter(items, activity));
-
         page.removeAllViews();
         page.addView(listView);
     }
@@ -331,10 +283,7 @@ public class GpuTableEditor {
         for (int i = 0; i < bins.get(bin_id).header.size(); i++) {
             String line = bins.get(bin_id).header.get(i);
             if (line.contains("qcom,initial-pwrlevel")) {
-                bins.get(bin_id).header.set(i,
-                        DtsHelper.encodeIntOrHexLine(
-                                DtsHelper.decode_int_line(line).name,
-                                DtsHelper.decode_int_line(line).value + offset + ""));
+                bins.get(bin_id).header.set(i, DtsHelper.encodeIntOrHexLine(DtsHelper.decode_int_line(line).name, DtsHelper.decode_int_line(line).value + offset + ""));
                 break;
             }
         }
@@ -399,7 +348,7 @@ public class GpuTableEditor {
                 continue;
 
             ParamAdapter.item item = new ParamAdapter.item();
-            item.title = freq / 1000 + "KHz";
+            item.title = freq / 1000 + "MHz";
             item.subtitle = "";
             items.add(item);
         }
@@ -439,7 +388,7 @@ public class GpuTableEditor {
                     offset_initial_level(id, 1);
                     offset_ca_target_level(id, 1);
                 } catch (Exception e) {
-                    DialogUtil.showError(activity, "pos 1 error");
+                    DialogUtil.showError(activity, "Clone a level error");
                 }
                 return;
             }
@@ -447,7 +396,7 @@ public class GpuTableEditor {
             try {
                 generateALevel(activity, id, position, page);
             } catch (Exception e) {
-                DialogUtil.showError(activity,"pos 2 error");
+                DialogUtil.showError(activity, "Add a new level error");
             }
         });
 
@@ -467,7 +416,7 @@ public class GpuTableEditor {
                                 offset_initial_level(id, -1);
                                 offset_ca_target_level(id, -1);
                             } catch (Exception e) {
-                                DialogUtil.showError(activity, "remove freq error");
+                                DialogUtil.showError(activity, "Remove a frequency error");
                             }
                         })
                         .setNegativeButton(R.string.no, null)
@@ -534,9 +483,11 @@ public class GpuTableEditor {
             toolbar.addView(button);
             button.setOnClickListener(v -> {
                 try {
+                    System.out.println("Save 1");
                     writeOut(genBack(genTable()));
                     Toast.makeText(activity, R.string.save_success, Toast.LENGTH_SHORT).show();
                 } catch (Exception e) {
+                    System.out.println(e.getMessage() + Arrays.toString(e.getStackTrace()));
                     DialogUtil.showError(activity, R.string.save_failed);
                 }
             });

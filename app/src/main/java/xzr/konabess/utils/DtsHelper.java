@@ -1,8 +1,8 @@
 package xzr.konabess.utils;
 
 public class DtsHelper {
-    public static boolean shouldUseHex(String line) {
-        return true;
+    public static boolean shouldUseHex() {
+        return false;
     }
 
     public static class intLine {
@@ -15,37 +15,6 @@ public class DtsHelper {
         public String value;
     }
 
-    public static intLine decode_int_line_hz(String line) throws Exception {
-        intLine intLine = new intLine();
-        line = line.trim();
-        int i;
-        for (i = 0; i < line.length(); i++) {
-            if (line.startsWith("=", i)) {
-                break;
-            }
-        }
-        if (i == line.length())
-            throw new Exception();
-        intLine.name = line.substring(0, i);
-        intLine.name = intLine.name.trim();
-
-        String value = line.substring(i + 1);
-        value = value.replace("<0x0 ", "")
-                .replace(">", "")
-                .replace(";", "");
-
-        if (value.contains("0x")) {
-            value = value.replace("0x", "").trim();
-            intLine.value = Long.parseLong(value, 16);
-        } else {
-            value = value.trim();
-            intLine.value = Long.parseLong(value);
-        }
-
-        return intLine;
-    }
-
-    //To handle dtc bug
     public static int decode_stringed_int(String input) throws Exception {
         input = input.replace("\"", "")
                 .replace(";", "")
@@ -90,31 +59,22 @@ public class DtsHelper {
         return intLine;
     }
 
-    public static hexLine decode_hex_line(String line) throws Exception {
+    public static hexLine decode_hex_line(String line) {
         hexLine hexLine = new hexLine();
         line = line.trim();
-        int i;
-        for (i = 0; i < line.length(); i++) {
-            if (line.startsWith("=", i)) {
-                break;
-            }
-        }
-        if (i == line.length())
-            throw new Exception();
-        hexLine.name = line.substring(0, i);
+        hexLine.name = line;
         hexLine.name = hexLine.name.trim();
-
-        String value = line.substring(i + 1);
-        value = value.replace("<", "")
-                .replace(">", "")
-                .replace(";", "").trim();
-
-        hexLine.value = value;
-
+        hexLine.value = line;
         return hexLine;
     }
 
     public static String encodeIntOrHexLine(String name, String value) {
         return name + " = <" + value + ">;";
+    }
+
+    public static String inputToHex(String input) {
+        int intValue = Integer.parseInt(input);
+        String hexValue = Integer.toHexString(intValue);
+        return "0x" + hexValue;
     }
 }

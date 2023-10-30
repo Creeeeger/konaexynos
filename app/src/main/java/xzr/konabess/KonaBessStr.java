@@ -1,4 +1,5 @@
 package xzr.konabess;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 public class KonaBessStr {
