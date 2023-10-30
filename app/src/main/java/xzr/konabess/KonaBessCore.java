@@ -6,8 +6,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -18,7 +16,7 @@ import java.util.List;
 import xzr.konabess.utils.AssetsUtil;
 
 public class KonaBessCore {
-    private static final String[] fileList = {"dtc", "magiskboot", "extract_dtb"};
+    private static final String[] fileList = {"dtc", "magiskboot", "extract_dtb", "repack_dtb"};
     public static String dts_path;
     public static ArrayList<dtb> dtbs;
 
@@ -223,7 +221,6 @@ public class KonaBessCore {
     }
     public static void dts2bootImage(Context context) throws IOException {
         dts2dtb(context);
-        linkDtbs(context);
         dtb2bootImage(context);
     }
 
@@ -243,25 +240,8 @@ public class KonaBessCore {
         bufferedReader.close();
         outputStreamWriter.close();
         process.destroy();
-        if (!new File(context.getFilesDir().getAbsolutePath() + "/0.dtb").exists())
+        if (!new File(context.getFilesDir().getAbsolutePath() + "/01_dtbdump_samsung,armv8.dtb").exists())
             throw new IOException(log.toString());
-    }
-
-    public static void linkDtbs(Context context) throws IOException {
-        File out;
-        out = new File(context.getFilesDir().getAbsolutePath() + "/dtb");
-
-        FileOutputStream fileOutputStream = new FileOutputStream(out);
-        for (int i = 0; i < 1; i++) {
-            File input = new File(context.getFilesDir().getAbsolutePath() + "/01_dtbdump_samsung,armv8.dtb");
-            FileInputStream fileInputStream = new FileInputStream(input);
-            byte[] b = new byte[(int) input.length()];
-            if (fileInputStream.read(b) != input.length())
-                throw new IOException();
-            fileOutputStream.write(b);
-            fileInputStream.close();
-        }
-        fileOutputStream.close();
     }
 
     private static void dtb2bootImage(Context context) throws IOException {
@@ -269,7 +249,7 @@ public class KonaBessCore {
         OutputStreamWriter outputStreamWriter = new OutputStreamWriter(process.getOutputStream());
         BufferedReader bufferedReader = new BufferedReader((new InputStreamReader(process.getInputStream())));
         outputStreamWriter.write("cd " + context.getFilesDir().getAbsolutePath() + "\n");
-        outputStreamWriter.write("./magiskboot repack boot.img dtb_new.img\n");
+        outputStreamWriter.write("./repack_dtb 00_kernel 01_dtbdump_samsung,armv8.dtb dtb_new.img\n");
         outputStreamWriter.write("exit\n");
         outputStreamWriter.flush();
         StringBuilder log = new StringBuilder();
@@ -280,7 +260,7 @@ public class KonaBessCore {
         bufferedReader.close();
         outputStreamWriter.close();
         process.destroy();
-        if (!new File(context.getFilesDir().getAbsolutePath() + "/dtb.img").exists())
+        if (!new File(context.getFilesDir().getAbsolutePath() + "/dtb_new.img").exists())
             throw new IOException(log.toString());
     }
 

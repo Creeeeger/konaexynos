@@ -483,11 +483,10 @@ public class GpuTableEditor {
             toolbar.addView(button);
             button.setOnClickListener(v -> {
                 try {
-                    System.out.println("Save 1");
                     writeOut(genBack(genTable()));
                     Toast.makeText(activity, R.string.save_success, Toast.LENGTH_SHORT).show();
                 } catch (Exception e) {
-                    System.out.println(e.getMessage() + Arrays.toString(e.getStackTrace()));
+                    System.out.println(e.getMessage());
                     DialogUtil.showError(activity, R.string.save_failed);
                 }
             });
