@@ -20,7 +20,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import xzr.konabess.adapters.ParamAdapter;
@@ -50,17 +49,6 @@ import xzr.konabess.utils.DtsHelper;
 public class GpuTableEditor {
     private static int bin_position;
     private static ArrayList<bin> bins;
-
-    private static class bin {
-        int id;
-        ArrayList<String> header;
-        ArrayList<level> levels;
-    }
-
-    private static class level {
-        ArrayList<String> lines;
-    }
-
     private static ArrayList<String> lines_in_dts;
 
     public static void init() throws IOException {
@@ -138,15 +126,12 @@ public class GpuTableEditor {
         ArrayList<String> lines = new ArrayList<>();
         if (ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) {
             lines.add("gpu_dvfs_table = <");
-            lines.addAll(bins.get(0).header);
             for (int pwr_level_id = 0; pwr_level_id < bins.get(0).levels.size(); pwr_level_id++) {
-                lines.add("qcom,gpu-pwrlevel@" + pwr_level_id + " {");
-                lines.add("reg = <" + pwr_level_id + ">;");
                 lines.addAll(bins.get(0).levels.get(pwr_level_id).lines);
-                lines.add("};");
             }
-            lines.add("};");
+            lines.add(">;");
         }
+        System.out.println(lines + " lines");
         return lines;
     }
 
@@ -301,8 +286,6 @@ public class GpuTableEditor {
             }
         }
     }
-
-
 
     public static boolean canAddNewLevel(int binID, Context context) throws Exception {
         int max_levels = ChipInfo.getMaxTableLevels() - min_level_chip_offset();
@@ -492,6 +475,16 @@ public class GpuTableEditor {
             });
         }
         return horizontalScrollView;
+    }
+
+    private static class bin {
+        int id;
+        ArrayList<String> header;
+        ArrayList<level> levels;
+    }
+
+    private static class level {
+        ArrayList<String> lines;
     }
 
     static class gpuTableLogic extends Thread {

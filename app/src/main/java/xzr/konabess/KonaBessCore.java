@@ -114,6 +114,7 @@ public class KonaBessCore {
         outputStreamWriter.write("cd " + context.getFilesDir().getAbsolutePath() + "\n");
         outputStreamWriter.write("./dtc -I dtb -O dts 01_dtbdump_samsung,armv8.dtb -o 0.dts\n");
         outputStreamWriter.write("rm -f 01_dtbdump_samsung,armv8.dtb\n");
+        outputStreamWriter.write("chmod 777 0.dts\n");
         outputStreamWriter.write("exit\n");
         outputStreamWriter.flush();
         StringBuilder log = new StringBuilder();

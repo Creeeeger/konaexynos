@@ -5,16 +5,6 @@ public class DtsHelper {
         return false;
     }
 
-    public static class intLine {
-        public String name;
-        public long value;
-    }
-
-    public static class hexLine {
-        public String name;
-        public String value;
-    }
-
     public static int decode_stringed_int(String input) throws Exception {
         input = input.replace("\"", "")
                 .replace(";", "")
@@ -76,5 +66,15 @@ public class DtsHelper {
         int intValue = Integer.parseInt(input);
         String hexValue = Integer.toHexString(intValue);
         return "0x" + hexValue;
+    }
+
+    public static class intLine {
+        public String name;
+        public long value;
+    }
+
+    public static class hexLine {
+        public String name;
+        public String value;
     }
 }

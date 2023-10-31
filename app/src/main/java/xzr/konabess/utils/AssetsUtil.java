@@ -9,7 +9,7 @@ import java.io.InputStream;
 
 public class AssetsUtil {
     public static void exportFiles(Context context, String src, String out) throws IOException {
-        String fileNames[] = context.getAssets().list(src);
+        String[] fileNames = context.getAssets().list(src);
         if (fileNames.length > 0) {
             File file = new File(out);
             file.mkdirs();
