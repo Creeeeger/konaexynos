@@ -96,12 +96,13 @@ public class GpuTableEditor {
         bin bin = new bin();
         bin.header = new ArrayList<>();
         bin.levels = new ArrayList<>();
+        bin.meta = new ArrayList<>();
         bin.id = bins.size();
-        int j = -1;
         String nline = lines.get(0);
         nline = nline.trim().replace("gpu_dvfs_table = <", "").replace(">;", "");
-        String[] hexArray = nline.split(" ");
+        String[] hexArray = nline.split(" "); // Split the input string by spaces
         int groupSize = 8;
+        int j = -1;
         String[][] result = new String[(hexArray.length + groupSize - 1) / groupSize][groupSize];
         for (int i = 0; i < hexArray.length; i++) {
             int row = i / groupSize;
@@ -110,6 +111,21 @@ public class GpuTableEditor {
         }
         while (++j < result.length) {
             bin.levels.add(decode_level(result[j][0]));
+        }
+        StringBuilder res = new StringBuilder();
+        String[] meta = lines.toArray(new String[result.length]);
+
+        for (int i = 0; i < result.length; i++) {
+            for (int k = 0; k < 7; k++) {
+                res.append(result[i][k + 1]).append(" ");
+            }
+            meta[i] = res.toString();
+            res = new StringBuilder();
+        }
+        j = 0; // Reset j to 0
+        while (j < meta.length) {
+            bin.meta.add(decode_meta(meta[j]));
+            j++;
         }
         bins.add(bin);
     }
@@ -122,18 +138,35 @@ public class GpuTableEditor {
         return level;
     }
 
+    public static level decode_meta(String mline) {
+        level level = new level();
+        level.lines = new ArrayList<>();
+        level.lines.add(mline);
+        return level;
+    }
+
     public static List<String> genTable() {
         ArrayList<String> lines = new ArrayList<>();
         if (ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) {
             lines.add("gpu_dvfs_table = <");
-            for (int pwr_level_id = 0; pwr_level_id < bins.get(0).levels.size(); pwr_level_id++) {
-                lines.addAll(bins.get(0).levels.get(pwr_level_id).lines);
+            int l = 0;
+            for (int i = 0; i < bins.get(0).levels.size(); i++) {
+                lines.addAll(bins.get(0).levels.get(i).lines);
+                lines.addAll(bins.get(0).meta.get(l).lines);
+                l++;
             }
             lines.add(">;");
         }
-        System.out.println(lines + " lines");
-        return lines;
+
+        // Concatenate all elements in the lines list into a single line
+        String concatenatedLine = String.join(" ", lines);
+        ArrayList<String> result = new ArrayList<>();
+        result.add(concatenatedLine);
+        System.out.println("line" + result);
+
+        return result;
     }
+
 
     public static List<String> genBack(List<String> table) {
         ArrayList<String> new_dts = new ArrayList<>(lines_in_dts);
@@ -481,6 +514,7 @@ public class GpuTableEditor {
         int id;
         ArrayList<String> header;
         ArrayList<level> levels;
+        ArrayList<level> meta;
     }
 
     private static class level {
