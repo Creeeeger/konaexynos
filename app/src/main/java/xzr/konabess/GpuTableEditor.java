@@ -26,26 +26,6 @@ import xzr.konabess.adapters.ParamAdapter;
 import xzr.konabess.utils.DialogUtil;
 import xzr.konabess.utils.DtsHelper;
 
-/*
-&mali {
-        interactive_info = <260000 94 0>;
-        gpu_dvfs_table_size = <9 8>; <row col>
-        /*  8 columns      freq  down   up  stay  mif    little  middle   big
-        gpu_dvfs_table = <  702000    78  100   9  2093000 1456000       0 1820000
-        650000    78   98   5  2093000 1456000       0 2080000
-        572000    78   98   5  1794000       0       0       0
-        433000    78   95   1  1352000       0       0       0
-        377000    78   90   1  1352000       0       0       0
-        325000    78   85   1  1014000       0       0       0
-        260000    78   85   1   676000       0       0       0
-        200000    78   85   1   676000       0       0       0
-        156000     0   85   1   676000       0       0       0 >;
-        gpu_max_clock = <702000>;
-        gpu_max_clock_limit = <702000>;
-        gpu_min_clock = <156000>;
-        gpu_dvfs_start_clock = <260000>;
-        gpu_dvfs_bl_config_clock = <156000>;
-        };*/
 public class GpuTableEditor {
     private static int bin_position;
     private static ArrayList<bin> bins;
@@ -162,11 +142,8 @@ public class GpuTableEditor {
         String concatenatedLine = String.join(" ", lines);
         ArrayList<String> result = new ArrayList<>();
         result.add(concatenatedLine);
-        System.out.println("line" + result);
-
         return result;
     }
-
 
     public static List<String> genBack(List<String> table) {
         ArrayList<String> new_dts = new ArrayList<>(lines_in_dts);
@@ -233,6 +210,8 @@ public class GpuTableEditor {
                         .setPositiveButton(R.string.save, (dialog, which) -> {
                             try {
                                 bins.get(last).levels.get(levelid).lines.set(position - 1, DtsHelper.inputToHex(editText.getText().toString()));
+                                bins.get(0).meta.get(levelid).lines.set(position - 1, bins.get(0).meta.get(levelid).lines.toString());
+                                bins.get(0).meta.add(0, bins.get(0).meta.get(0));
                                 generateALevel(activity, last, levelid, page);
                                 Toast.makeText(activity, R.string.save_success, Toast.LENGTH_SHORT).show();
                             } catch (Exception e) {
@@ -380,6 +359,7 @@ public class GpuTableEditor {
                     if (!canAddNewLevel(id, activity))
                         return;
                     bins.get(id).levels.add(bins.get(id).levels.size() - min_level_chip_offset(), level_clone(bins.get(id).levels.get(bins.get(id).levels.size() - min_level_chip_offset())));
+                    bins.get(0).meta.add(bins.get(0).meta.get(bins.get(0).meta.size() - 1));
                     generateLevels(activity, id, page);
                     offset_initial_level(id, 1);
                     offset_ca_target_level(id, 1);
@@ -400,6 +380,7 @@ public class GpuTableEditor {
                     if (!canAddNewLevel(id, activity))
                         return;
                     bins.get(id).levels.add(0, level_clone(bins.get(id).levels.get(0)));
+                    bins.get(0).meta.add(0, bins.get(0).meta.get(0));
                     generateLevels(activity, id, page);
                     offset_initial_level(id, 1);
                     offset_ca_target_level(id, 1);
@@ -427,6 +408,7 @@ public class GpuTableEditor {
                         .setMessage(String.format(activity.getResources().getString(R.string.remove_msg), getFrequencyFromLevel(bins.get(id).levels.get(position - 2)) / 1000))
                         .setPositiveButton(R.string.yes, (dialog, which) -> {
                             bins.get(id).levels.remove(position - 2);
+                            bins.get(id).meta.remove(position - 2);
                             try {
                                 generateLevels(activity, id, page);
                                 offset_initial_level(id, -1);
@@ -502,7 +484,6 @@ public class GpuTableEditor {
                     writeOut(genBack(genTable()));
                     Toast.makeText(activity, R.string.save_success, Toast.LENGTH_SHORT).show();
                 } catch (Exception e) {
-                    System.out.println(e.getMessage());
                     DialogUtil.showError(activity, R.string.save_failed);
                 }
             });

@@ -5,7 +5,6 @@
 * Exynos 9825
 * For a new device open an issue and i will add it as soon as possible
 
-
 ### What is this?
 
 - A simple app that can custom GPU frequency tables without recompiling the kernel
@@ -45,10 +44,10 @@
 - flash 
 - edit table
 - saving
+- saving the table in the correct format
 
 
 ### What doesn't
-- saving the table in the correct format 
 - modifiying other parts of the dts file according to the table changes 
 
 ### Issues 
