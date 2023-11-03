@@ -16,7 +16,7 @@ import java.util.List;
 import xzr.konabess.utils.AssetsUtil;
 
 public class KonaBessCore {
-    private static final String[] fileList = {"dtc", "magiskboot", "extract_dtb", "repack_dtb"};
+    private static final String[] fileList = {"dtc", "extract_dtb", "repack_dtb"};
     public static String dts_path;
     public static ArrayList<dtb> dtbs;
 
@@ -92,9 +92,7 @@ public class KonaBessCore {
         BufferedReader bufferedReader = new BufferedReader((new InputStreamReader(process.getInputStream())));
         outputStreamWriter.write("cd " + context.getFilesDir().getAbsolutePath() + "\n");
         outputStreamWriter.write("./extract_dtb dtb.img\n");
-        outputStreamWriter.write("cp -r dtb /storage/emulated/0\n");
-        outputStreamWriter.write("cp -r /storage/emulated/0/dtb /data/user/0/crecker.konaexynos/files\n");
-        outputStreamWriter.write("mv /storage/emulated/0/dtb/* .\n");
+        outputStreamWriter.write("mv " + context.getFilesDir().getAbsolutePath() + "/dtb/* .\n");
         outputStreamWriter.write("exit\n");
         outputStreamWriter.flush();
         StringBuilder log = new StringBuilder();

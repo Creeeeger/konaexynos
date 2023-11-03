@@ -173,7 +173,7 @@ public class GpuTableEditor {
         bin.min = new ArrayList<>();
         bin.max_limit = new ArrayList<>();
         bin.dvfs_size = new ArrayList<>();
-        bin.id = bins.size();
+        bin.id = 0;
         String nline = lines.get(0);
         nline = nline.trim().replace("gpu_dvfs_table = <", "").replace(">;", "");
         String[] hexArray = nline.split(" "); // Split the input string by spaces
@@ -360,8 +360,6 @@ public class GpuTableEditor {
                         .setPositiveButton(R.string.save, (dialog, which) -> {
                             try {
                                 bins.get(last).levels.get(levelid).lines.set(position - 1, DtsHelper.inputToHex(editText.getText().toString()));
-                                bins.get(0).meta.get(levelid).lines.set(position - 1, bins.get(0).meta.get(levelid).lines.toString());
-                                bins.get(0).meta.add(0, bins.get(0).meta.get(0));
                                 generateALevel(activity, last, levelid, page);
                                 Toast.makeText(activity, R.string.save_success, Toast.LENGTH_SHORT).show();
                             } catch (Exception e) {
@@ -465,7 +463,21 @@ public class GpuTableEditor {
         throw new Exception();
     }
 
+    public static level inputToHex(int input) {
+        level level = new level();
+        level.lines = new ArrayList<>();
+        String input_string = String.valueOf(input);
+        int intValue = Integer.parseInt(input_string);
+        String hexValue = Integer.toHexString(intValue);
+        level.lines.add("0x" + hexValue + " 0x8");
+        return level;
+    }
+
     private static void generateLevels(AppCompatActivity activity, int id, LinearLayout page) throws Exception {
+        bins.get(0).min.set(0, bins.get(0).levels.get(bins.get(0).levels.size() - 1));
+        bins.get(0).max.set(0, bins.get(0).levels.get(0));
+        bins.get(0).max_limit.set(0, bins.get(0).levels.get(0));
+        bins.get(0).dvfs_size.set(0, inputToHex(bins.get(0).levels.size()));
         ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
             @Override
             public void onBackPressed() {
@@ -609,7 +621,6 @@ public class GpuTableEditor {
         for (int i = 0; i < bins.size(); i++) {
             ParamAdapter.item item = new ParamAdapter.item();
             item.title = KonaBessStr.convert_bins(bins.get(i).id, activity);
-            System.out.println(bins.get(i).id);
             item.subtitle = "";
             items.add(item);
         }
