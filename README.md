@@ -32,7 +32,6 @@
 
 ### Prebuilt binaries
 
-- [magiskboot](https://github.com/topjohnwu/Magisk)
 - [dtc](https://github.com/xzr467706992/dtc-aosp/tree/standalone)
 - [extract_dtb](https://github.com/PabloCastellano/extract-dtb)
 - [repack_dtb](Self crafted binary for attaching both dtb parts together and converting them to an image)
@@ -45,10 +44,11 @@
 - edit table
 - saving
 - saving the table in the correct format
-
+- modifiying other parts of the dts file according to the table changes
+- saving it in the correct order
 
 ### What doesn't
-- modifiying other parts of the dts file according to the table changes 
+- idk smasnungs kernel which prevents it from working( mostly )
 
 ### Issues 
 - If there are any issues or whatever open an issue 

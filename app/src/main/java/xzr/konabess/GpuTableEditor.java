@@ -252,19 +252,25 @@ public class GpuTableEditor {
     public static List<String> genTable(int type) {
         ArrayList<String> lines = new ArrayList<>();
 
-        if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && type == 1) {
+        if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && type == 0) {
             lines.add("gpu_dvfs_table_size = <");
             lines.addAll(bins.get(0).dvfs_size.get(0).lines);
             lines.add(">;");
         }
-        if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && type == 5) {
+        if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && type == 1) {
             lines.add("gpu_dvfs_table = <");
             int l = 0;
             for (int i = 0; i < bins.get(0).levels.size(); i++) {
                 lines.addAll(bins.get(0).levels.get(i).lines);
-                lines.addAll(bins.get(0).meta.get(l).lines);
+                lines.add(" ");
+                List<String> metaLines = bins.get(0).meta.get(l).lines;
+                for (String metaLine : metaLines) {
+                    lines.add(metaLine.trim());
+                    lines.add(" ");
+                }
                 l++;
             }
+            lines.remove(lines.size() - 1);
             lines.add(">;");
         }
         if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && type == 2) {
@@ -284,7 +290,7 @@ public class GpuTableEditor {
         }
 
         // Concatenate all elements in the lines list into a single line
-        String concatenatedLine = String.join(" ", lines);
+        String concatenatedLine = String.join("", lines);
         ArrayList<String> result = new ArrayList<>();
         result.add(concatenatedLine);
         return result;
@@ -292,12 +298,11 @@ public class GpuTableEditor {
 
     public static List<String> genBack(List<String> table) {
         ArrayList<String> new_dts = new ArrayList<>(lines_in_dts);
-        new_dts.addAll(bin_positiondv, genTable(1));
-        new_dts.addAll(bin_position, table);
-        new_dts.addAll(bin_positionmax, genTable(2));
-        new_dts.addAll(bin_positionmaxlim, genTable(3));
+        new_dts.addAll(bin_position, genTable(1));
+        new_dts.addAll(bin_positiondv, genTable(0));
         new_dts.addAll(bin_positionmin, genTable(4));
-
+        new_dts.addAll(bin_positionmaxlim, genTable(3));
+        new_dts.addAll(bin_positionmax, genTable(2));
         return new_dts;
     }
 
