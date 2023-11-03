@@ -28,6 +28,10 @@ import xzr.konabess.utils.DtsHelper;
 
 public class GpuTableEditor {
     private static int bin_position;
+    private static int bin_positiondv;
+    private static int bin_positionmax;
+    private static int bin_positionmaxlim;
+    private static int bin_positionmin;
     private static ArrayList<bin> bins;
     private static ArrayList<String> lines_in_dts;
 
@@ -35,6 +39,10 @@ public class GpuTableEditor {
         lines_in_dts = new ArrayList<>();
         bins = new ArrayList<>();
         bin_position = -1;
+        bin_positiondv = -1;
+        bin_positionmax = -1;
+        bin_positionmaxlim = -1;
+        bin_positionmin = -1;
         BufferedReader bufferedReader = new BufferedReader(new FileReader(KonaBessCore.dts_path));
         String s;
         while ((s = bufferedReader.readLine()) != null) {
@@ -42,41 +50,129 @@ public class GpuTableEditor {
         }
     }
 
-    public static void decode() throws Exception {
+    public static void decode() {
         int i = -1;
         String this_line;
-        int start = -1;
+        int start;
         int end;
-        int bracket = 0;
+        bin bin = new bin();
+        bin.dvfs_size = new ArrayList<>();
+        bin.max = new ArrayList<>();
+        bin.min = new ArrayList<>();
+        bin.max_limit = new ArrayList<>();
         while (++i < lines_in_dts.size()) {
             this_line = lines_in_dts.get(i).trim();
-            if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && this_line.contains("gpu_dvfs_table = ")) {
-                start = i;
-                if (bin_position < 0)
-                    bin_position = i;
-                bracket++;
+
+            if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && this_line.contains("gpu_dvfs_table_size = <")) {
+                start = end = i;
+                if (bin_positiondv < 0)
+                    bin_positiondv = i;
+                decode_tablesz(lines_in_dts.subList(start, end + 1));
+                lines_in_dts.subList(start, end + 1).clear();
+                i = start - 1;
                 continue;
             }
 
-            if (bracket == 1 && start >= 0 && (ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825)) {
-                end = i;
-                if (end >= start) {
-                    decode_bin(lines_in_dts.subList(start, end));
-                    lines_in_dts.subList(start, end).clear();
-                } else {
-                    throw new Exception();
-                }
+            if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && this_line.contains("gpu_dvfs_table = ")) {
+                start = end = i;
+                if (bin_position < 0)
+                    bin_position = i;
+                decode_bin(lines_in_dts.subList(start, end + 1));
+                lines_in_dts.subList(start, end + 1).clear();
                 i = start - 1;
-                start = -1;
+                continue;
+            }
+
+            if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && this_line.contains("gpu_max_clock = <")) {
+                start = end = i;
+                if (bin_positionmax < 0)
+                    bin_positionmax = i;
+                decode_tablemax(lines_in_dts.subList(start, end + 1));
+                lines_in_dts.subList(start, end + 1).clear();
+                i = start - 1;
+                continue;
+            }
+
+            if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && this_line.contains("gpu_max_clock_limit = <")) {
+                start = end = i;
+                if (bin_positionmaxlim < 0)
+                    bin_positionmaxlim = i;
+                decode_tablemaxl(lines_in_dts.subList(start, end + 1));
+                lines_in_dts.subList(start, end + 1).clear();
+                i = start - 1;
+                continue;
+            }
+
+            if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && this_line.contains("gpu_min_clock = <")) {
+                start = end = i;
+                if (bin_positionmin < 0)
+                    bin_positionmin = i;
+                decode_tablemin(lines_in_dts.subList(start, end + 1));
+                lines_in_dts.subList(start, end + 1).clear();
+                i = start - 1;
             }
         }
+        mergebins();
     }
 
-    private static void decode_bin(List<String> lines) {
+    public static void mergebins() {
+        bins.get(1).dvfs_size.add(bins.get(0).dvfs_size.get(0));
+        bins.get(1).max.add(bins.get(2).max.get(0));
+        bins.get(1).max_limit.add(bins.get(3).max_limit.get(0));
+        bins.get(1).min.add(bins.get(4).min.get(0));
+
+        // Remove bins 0, 2, 3, and 4
+        bins.remove(4); // Remove bin 4 first to avoid index issues
+        bins.remove(3);
+        bins.remove(2);
+        bins.remove(0);
+    }
+
+    public static void decode_tablesz(List<String> lines) {
+        bin bin = new bin();
+        bin.dvfs_size = new ArrayList<>();
+        String nline = lines.get(0);
+        nline = nline.trim().replace("gpu_dvfs_table_size = <", "").replace(">;", "");
+        bin.dvfs_size.add(decode_tableszf(nline));
+        bins.add(bin);
+    }
+
+    public static void decode_tablemax(List<String> lines) {
+        bin bin = new bin();
+        bin.max = new ArrayList<>();
+        String nline = lines.get(0);
+        nline = nline.trim().replace("gpu_max_clock = <", "").replace(">;", "");
+        bin.max.add(decode_tablemaxf(nline));
+        bins.add(bin);
+    }
+
+    public static void decode_tablemaxl(List<String> lines) {
+        bin bin = new bin();
+        bin.max_limit = new ArrayList<>();
+        String nline = lines.get(0);
+        nline = nline.trim().replace("gpu_max_clock_limit = <", "").replace(">;", "");
+        bin.max_limit.add(decode_table_max_lm(nline));
+        bins.add(bin);
+    }
+
+    public static void decode_tablemin(List<String> lines) {
+        bin bin = new bin();
+        bin.min = new ArrayList<>();
+        String nline = lines.get(0);
+        nline = nline.trim().replace("gpu_min_clock = <", "").replace(">;", "");
+        bin.min.add(decode_tableminf(nline));
+        bins.add(bin);
+    }
+
+    public static void decode_bin(List<String> lines) {
         bin bin = new bin();
         bin.header = new ArrayList<>();
         bin.levels = new ArrayList<>();
         bin.meta = new ArrayList<>();
+        bin.max = new ArrayList<>();
+        bin.min = new ArrayList<>();
+        bin.max_limit = new ArrayList<>();
+        bin.dvfs_size = new ArrayList<>();
         bin.id = bins.size();
         String nline = lines.get(0);
         nline = nline.trim().replace("gpu_dvfs_table = <", "").replace(">;", "");
@@ -110,6 +206,34 @@ public class GpuTableEditor {
         bins.add(bin);
     }
 
+    public static level decode_tableszf(String lines) {
+        level level = new level();
+        level.lines = new ArrayList<>();
+        level.lines.add(lines);
+        return level;
+    }
+
+    public static level decode_tablemaxf(String lines) {
+        level level = new level();
+        level.lines = new ArrayList<>();
+        level.lines.add(lines);
+        return level;
+    }
+
+    public static level decode_table_max_lm(String lines) {
+        level level = new level();
+        level.lines = new ArrayList<>();
+        level.lines.add(lines);
+        return level;
+    }
+
+    public static level decode_tableminf(String lines) {
+        level level = new level();
+        level.lines = new ArrayList<>();
+        level.lines.add(lines);
+        return level;
+    }
+
     public static level decode_level(String lines) {
         level level = new level();
         level.lines = new ArrayList<>();
@@ -125,9 +249,15 @@ public class GpuTableEditor {
         return level;
     }
 
-    public static List<String> genTable() {
+    public static List<String> genTable(int type) {
         ArrayList<String> lines = new ArrayList<>();
-        if (ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) {
+
+        if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && type == 1) {
+            lines.add("gpu_dvfs_table_size = <");
+            lines.addAll(bins.get(0).dvfs_size.get(0).lines);
+            lines.add(">;");
+        }
+        if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && type == 5) {
             lines.add("gpu_dvfs_table = <");
             int l = 0;
             for (int i = 0; i < bins.get(0).levels.size(); i++) {
@@ -135,6 +265,21 @@ public class GpuTableEditor {
                 lines.addAll(bins.get(0).meta.get(l).lines);
                 l++;
             }
+            lines.add(">;");
+        }
+        if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && type == 2) {
+            lines.add("gpu_max_clock = <");
+            lines.addAll(bins.get(0).max.get(0).lines);
+            lines.add(">;");
+        }
+        if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && type == 3) {
+            lines.add("gpu_max_clock_limit = <");
+            lines.addAll(bins.get(0).max_limit.get(0).lines);
+            lines.add(">;");
+        }
+        if ((ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) && type == 4) {
+            lines.add("gpu_min_clock = <");
+            lines.addAll(bins.get(0).min.get(0).lines);
             lines.add(">;");
         }
 
@@ -147,7 +292,12 @@ public class GpuTableEditor {
 
     public static List<String> genBack(List<String> table) {
         ArrayList<String> new_dts = new ArrayList<>(lines_in_dts);
+        new_dts.addAll(bin_positiondv, genTable(1));
         new_dts.addAll(bin_position, table);
+        new_dts.addAll(bin_positionmax, genTable(2));
+        new_dts.addAll(bin_positionmaxlim, genTable(3));
+        new_dts.addAll(bin_positionmin, genTable(4));
+
         return new_dts;
     }
 
@@ -215,6 +365,7 @@ public class GpuTableEditor {
                                 generateALevel(activity, last, levelid, page);
                                 Toast.makeText(activity, R.string.save_success, Toast.LENGTH_SHORT).show();
                             } catch (Exception e) {
+                                System.out.println(e.getMessage() + e.getCause());
                                 DialogUtil.showError(activity, "Save new level failed");
                             }
                         })
@@ -222,6 +373,7 @@ public class GpuTableEditor {
                         .create().show();
 
             } catch (Exception e) {
+                System.out.println(e.getMessage() + e.getCause());
                 DialogUtil.showError(activity, R.string.error_occur);
             }
         });
@@ -364,6 +516,7 @@ public class GpuTableEditor {
                     offset_initial_level(id, 1);
                     offset_ca_target_level(id, 1);
                 } catch (Exception e) {
+                    System.out.println(e.getMessage() + e.getCause());
                     DialogUtil.showError(activity, "Can't add new level");
                 }
                 return;
@@ -385,6 +538,7 @@ public class GpuTableEditor {
                     offset_initial_level(id, 1);
                     offset_ca_target_level(id, 1);
                 } catch (Exception e) {
+                    System.out.println(e.getMessage() + e.getCause());
                     DialogUtil.showError(activity, "Clone a level error");
                 }
                 return;
@@ -393,6 +547,7 @@ public class GpuTableEditor {
             try {
                 generateALevel(activity, id, position, page);
             } catch (Exception e) {
+                System.out.println(e.getMessage() + e.getCause());
                 DialogUtil.showError(activity, "Add a new level error");
             }
         });
@@ -414,6 +569,7 @@ public class GpuTableEditor {
                                 offset_initial_level(id, -1);
                                 offset_ca_target_level(id, -1);
                             } catch (Exception e) {
+                                System.out.println(e.getMessage() + e.getCause());
                                 DialogUtil.showError(activity, "Remove a frequency error");
                             }
                         })
@@ -453,6 +609,7 @@ public class GpuTableEditor {
         for (int i = 0; i < bins.size(); i++) {
             ParamAdapter.item item = new ParamAdapter.item();
             item.title = KonaBessStr.convert_bins(bins.get(i).id, activity);
+            System.out.println(bins.get(i).id);
             item.subtitle = "";
             items.add(item);
         }
@@ -462,6 +619,7 @@ public class GpuTableEditor {
             try {
                 generateLevels(activity, position, page);
             } catch (Exception e) {
+                System.out.println(e.getMessage() + e.getCause());
                 DialogUtil.showError(activity, R.string.error_occur);
             }
         });
@@ -481,9 +639,10 @@ public class GpuTableEditor {
             toolbar.addView(button);
             button.setOnClickListener(v -> {
                 try {
-                    writeOut(genBack(genTable()));
+                    writeOut(genBack(genTable(5)));
                     Toast.makeText(activity, R.string.save_success, Toast.LENGTH_SHORT).show();
                 } catch (Exception e) {
+                    System.out.println(e.getMessage() + e.getCause());
                     DialogUtil.showError(activity, R.string.save_failed);
                 }
             });
@@ -496,6 +655,10 @@ public class GpuTableEditor {
         ArrayList<String> header;
         ArrayList<level> levels;
         ArrayList<level> meta;
+        ArrayList<level> dvfs_size;
+        ArrayList<level> max;
+        ArrayList<level> max_limit;
+        ArrayList<level> min;
     }
 
     private static class level {
@@ -523,6 +686,7 @@ public class GpuTableEditor {
                 init();
                 decode();
             } catch (Exception e) {
+                System.out.println(e.getMessage() + e.getCause());
                 activity.runOnUiThread(() -> DialogUtil.showError(activity, R.string.getting_freq_table_failed));
             }
 
@@ -535,7 +699,8 @@ public class GpuTableEditor {
                 try {
                     generateBins(activity, page);
                 } catch (Exception e) {
-                    DialogUtil.showError(activity, R.string.app_name);
+                    System.out.println(e.getMessage() + e.getCause());
+                    DialogUtil.showError(activity, "Failed to generate bins");
                 }
                 showedView.addView(page);
             });
