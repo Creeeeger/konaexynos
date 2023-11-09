@@ -34,7 +34,7 @@
 
 - [dtc](https://github.com/xzr467706992/dtc-aosp/tree/standalone)
 - [extract_dtb](https://github.com/PabloCastellano/extract-dtb)
-- [repack_dtb](Self crafted binary for attaching both dtb parts together and converting them to an image)
+- repack_dtb - Self crafted binary for attaching both dtb parts together and converting them to an image
 
 ### What works (Actually everything)
 - unpacking 
@@ -48,9 +48,10 @@
 - saving it in the correct order
 
 ### What doesn't
-- idk smasnungs kernel which prevents it from working( mostly )
-- in the logs i found a pre defined table ehat possible is
-- i use a stock kernel but the oc freqs which i could achieve with a custom kernel were list 1:1 in the logs-->
+- idk smasnungs kernel which prevents it from working (mostly)
+- in the logs I found a pre defined table which freqs possible are
+- i use a stock kernel but the overclock frequencies which i could achieve with a custom kernel were list 1:1 in the logs:
+```
 6,908,984754,-;dvfs_type : dvfs_g3d - id : a
 6,909,984761,-;  num_of_lv      : 12
 6,910,984769,-;  num_of_members : 1
@@ -67,12 +68,13 @@
 6,921,984874,-;  lv : [ 200000], volt = 568750 uV
 6,922,984883,-;  lv : [ 156000], volt = 543750 uV
 6,923,984892,-;  lv : [ 100000], volt = 537500 uV
--basically these freqs work and no other ones
--why idk they were pulled over some asv functions from the sram
--in the thermal part are freqs which you added over 702MHZ included but not in the table
--I think its something with the gpex clock ,driver ,fs ,devicetree
--there was also a functions which sets the actual oc value to 0 if the value u oc not empty is
-
+```
+- basically these freqs work and no other ones
+- why idk they were pulled over some asv functions from the sram
+- in the thermal part are freqs which you added over 702MHZ included but not in the table
+- I think its something with the gpex clock ,driver ,fs ,devicetree
+- there was also a functions which sets the actual oc value to 0 if the value u oc not empty is
+```
 static int gpexbe_devicetree_read_u32(const char *of_string, u32 *of_data)
 {
 	int ret = 0;
@@ -93,6 +95,7 @@ static int gpexbe_devicetree_read_u32(const char *of_string, u32 *of_data)
 	return ret;
 
 }
+```
 
 ### Issues 
 - If there are any issues or whatever open an issue 
