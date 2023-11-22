@@ -13,14 +13,8 @@ import java.util.List;
 import xzr.konabess.R;
 
 public class ParamAdapter extends BaseAdapter {
-    public static class item {
-        public String title;
-        public String subtitle;
-    }
-
     List<item> items;
     Context context;
-
     public ParamAdapter(List<item> items, Context context) {
         this.items = items;
         this.context = context;
@@ -50,5 +44,10 @@ public class ParamAdapter extends BaseAdapter {
         title.setText(items.get(position).title);
         subtitle.setText(items.get(position).subtitle);
         return view;
+    }
+
+    public static class item {
+        public String title;
+        public String subtitle;
     }
 }
