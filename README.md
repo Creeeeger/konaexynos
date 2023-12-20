@@ -21,9 +21,8 @@
 - select your chipset 
 - edit the table
 - press save gpu freq table
-- press repack and flash image ( if u want to get safe press backup old image and follow the screen instructions)
+- press repack and flash image (if u want to get safe press backup old image and follow the screen instructions)
 - reboot and see if it works
-
 
 ### How much improvement can I get?
 
@@ -35,17 +34,6 @@
 - [dtc](https://github.com/xzr467706992/dtc-aosp/tree/standalone)
 - [extract_dtb](https://github.com/PabloCastellano/extract-dtb)
 - repack_dtb - Self crafted binary for attaching both dtb parts together and converting them to an image
-
-### What works (Actually everything)
-- unpacking 
-- backup
-- repack 
-- flash 
-- edit table
-- saving
-- saving the table in the correct format
-- modifiying other parts of the dts file according to the table changes
-- saving it in the correct order
 
 ### What doesn't
 - idk smasnungs kernel which prevents it from working (mostly)
@@ -70,33 +58,9 @@
 6,923,984892,-;  lv : [ 100000], volt = 537500 uV
 ```
 - basically these freqs work and no other ones
-- why idk they were pulled over some asv functions from the sram
-- in the thermal part are freqs which you added over 702MHZ included but not in the table
-- I think its something with the gpex clock ,driver ,fs ,devicetree
-- there was also a functions which sets the actual oc value to 0 if the value u oc not empty is
-```
-static int gpexbe_devicetree_read_u32(const char *of_string, u32 *of_data)
-{
-	int ret = 0;
-
-	if (!of_string || !of_data) {
-		GPU_LOG(MALI_EXYNOS_ERROR, "NULL: failed to get item from dt\n");
-		return -EINVAL;
-	}
-
-	ret = of_property_read_u32(dt_info.dev->of_node, of_string, of_data);
-
-	if (ret) {
-		GPU_LOG(MALI_EXYNOS_ERROR,
-			"%s: failed to get item from dt. Data will be set to 0.\n", of_string);
-		*of_data = 0;
-	}
-
-	return ret;
-
-}
-```
-
+- these freqs are in the sram, so what i do is to create a custom kernel with a custom table, what i did and, but the voltages are linked to the frequencies even if you rewrite them
+- so we need to trick out this mechanism --> [The commit](https://github.com/Creeeeger/Galaxy_S10_5G_Kernel/commit/da293bfb95effcfcba1900a4a3fb15a95b471ef9#diff-830b66ed3916a0a50cb5b270b4a2b5d1ace91f93ccac5534b69c041558aba923)
+- 
 ### Issues 
 - If there are any issues or whatever open an issue 
 - If you want to contribute open pull request 
