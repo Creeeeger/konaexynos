@@ -5,7 +5,7 @@ plugins {
 
 android {
     dependencies{
-        implementation 'com.google.android.material:material:1.10.0'
+        implementation 'com.google.android.material:material:1.11.0'
     }
 
     compileSdk 34
@@ -13,8 +13,8 @@ android {
 
     defaultConfig {
         applicationId 'crecker.konaexynos'
-        minSdk 29
-        targetSdk 29
+        minSdk 33
+        targetSdk 33
         versionCode 23
         versionName '1.0'
     }
