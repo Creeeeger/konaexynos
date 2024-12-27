@@ -16,7 +16,18 @@ import java.util.List;
 import xzr.konabess.utils.AssetsUtil;
 
 public class KonaBessCore {
-    private static final String[] fileList = {"dtc", "extract_dtb", "repack_dtb"};
+    private static final String[] fileList = {
+            "dtc",
+            "extract_dtb",
+            "repack_dtb",
+            "libz.so",
+            "libz.so.1",
+            "libz.so.1.3.1",
+            "libzstd.so",
+            "libzstd.so.1",
+            "libzstd.so.1.5.6",
+            "libandroid-support.so"
+    };
     public static String dts_path;
     public static ArrayList<dtb> dtbs;
 
@@ -37,6 +48,9 @@ public class KonaBessCore {
             AssetsUtil.exportFiles(context, s, context.getFilesDir().getAbsolutePath() + "/" + s);
             File file = new File(context.getFilesDir().getAbsolutePath() + "/" + s);
             file.setExecutable(true);
+            file.setReadable(true);   // Ensure readability
+            file.setWritable(true);   // Ensure writ-ability
+
             if (!file.canExecute())
                 throw new IOException();
         }
@@ -87,44 +101,89 @@ public class KonaBessCore {
     }
 
     public static void unpackBootImage(Context context) throws IOException {
+        String filesDir = context.getFilesDir().getAbsolutePath();
+        File extractBinary = new File(filesDir, "extract_dtb");
+
+        // Ensure extract_dtb exists and is executable
+        if (!extractBinary.exists() || !extractBinary.canExecute()) {
+            throw new IOException("extract_dtb binary is missing or not executable");
+        }
+
         Process process = new ProcessBuilder("su").redirectErrorStream(true).start();
         OutputStreamWriter outputStreamWriter = new OutputStreamWriter(process.getOutputStream());
-        BufferedReader bufferedReader = new BufferedReader((new InputStreamReader(process.getInputStream())));
-        outputStreamWriter.write("cd " + context.getFilesDir().getAbsolutePath() + "\n");
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+        outputStreamWriter.write("cd " + filesDir + "\n");
+        outputStreamWriter.write("export LD_LIBRARY_PATH=" + context.getFilesDir().getAbsolutePath() + ":$LD_LIBRARY_PATH\n");
         outputStreamWriter.write("./extract_dtb dtb.img\n");
-        outputStreamWriter.write("mv " + context.getFilesDir().getAbsolutePath() + "/dtb/* .\n");
+
+        // Check if the extracted folder exists
+        outputStreamWriter.write("[ -d dtb ] || mkdir dtb\n");
+        outputStreamWriter.write("mv dtb/* . || echo 'Move failed'\n");
+        outputStreamWriter.write("rm -rf dtb\n");
         outputStreamWriter.write("exit\n");
         outputStreamWriter.flush();
+
         StringBuilder log = new StringBuilder();
         String s;
         while ((s = bufferedReader.readLine()) != null) {
             log.append(s).append("\n");
         }
+
         bufferedReader.close();
         outputStreamWriter.close();
         process.destroy();
+
+        // Check if output file(s) exist
+        File extractedFile = new File(filesDir, "01_dtbdump_samsung,armv8.dtb");
+        if (!extractedFile.exists()) {
+            System.out.println("error: " + log);
+            throw new IOException("Failed to extract DTB: " + log);
+        }
     }
 
     private static void dtb2dts(Context context) throws IOException {
+        String filesDir = context.getFilesDir().getAbsolutePath();
+
+        // Ensure dtc binary exists and is executable
+        File dtcBinary = new File(filesDir, "dtc");
+        if (!dtcBinary.exists() || !dtcBinary.canExecute()) {
+            throw new IOException("dtc binary is missing or not executable");
+        }
+
+        // Check input file existence
+        File inputFile = new File(filesDir, "01_dtbdump_samsung,armv8.dtb");
+        if (!inputFile.exists()) {
+            throw new IOException("Input DTB file does not exist: " + inputFile.getAbsolutePath());
+        }
+
         Process process = new ProcessBuilder("su").redirectErrorStream(true).start();
         OutputStreamWriter outputStreamWriter = new OutputStreamWriter(process.getOutputStream());
-        BufferedReader bufferedReader = new BufferedReader((new InputStreamReader(process.getInputStream())));
-        outputStreamWriter.write("cd " + context.getFilesDir().getAbsolutePath() + "\n");
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+        outputStreamWriter.write("cd " + filesDir + "\n");
         outputStreamWriter.write("./dtc -I dtb -O dts 01_dtbdump_samsung,armv8.dtb -o 0.dts\n");
         outputStreamWriter.write("rm -f 01_dtbdump_samsung,armv8.dtb\n");
         outputStreamWriter.write("chmod 777 0.dts\n");
         outputStreamWriter.write("exit\n");
         outputStreamWriter.flush();
+
         StringBuilder log = new StringBuilder();
         String s;
         while ((s = bufferedReader.readLine()) != null) {
             log.append(s).append("\n");
         }
+
         bufferedReader.close();
         outputStreamWriter.close();
         process.destroy();
-        if (!new File(context.getFilesDir().getAbsolutePath() + "/0.dts").exists())
-            throw new IOException(log.toString());
+
+        // Verify output file
+        File outputFile = new File(filesDir, "0.dts");
+        if (!outputFile.exists() || !outputFile.canRead()) {
+            System.out.println("error: " + log);
+            throw new IOException("DTS conversion failed: " + log.toString());
+        }
     }
 
     public static void checkDevice(Context context) throws IOException {
@@ -218,6 +277,7 @@ public class KonaBessCore {
         dts_path = activity.getFilesDir().getAbsolutePath() + "/0.dts";
         ChipInfo.which = dtb.type;
     }
+
     public static void dts2bootImage(Context context) throws IOException {
         dts2dtb(context);
         dtb2bootImage(context);
@@ -248,6 +308,7 @@ public class KonaBessCore {
         OutputStreamWriter outputStreamWriter = new OutputStreamWriter(process.getOutputStream());
         BufferedReader bufferedReader = new BufferedReader((new InputStreamReader(process.getInputStream())));
         outputStreamWriter.write("cd " + context.getFilesDir().getAbsolutePath() + "\n");
+        outputStreamWriter.write("export LD_LIBRARY_PATH=" + context.getFilesDir().getAbsolutePath() + ":$LD_LIBRARY_PATH\n");
         outputStreamWriter.write("./repack_dtb 00_kernel 01_dtbdump_samsung,armv8.dtb dtb_new.img\n");
         outputStreamWriter.write("exit\n");
         outputStreamWriter.flush();
