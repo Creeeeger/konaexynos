@@ -318,7 +318,7 @@ public class GpuTableEditor {
     }
 
     private static String generateSubtitle(String line) throws Exception {
-        return DtsHelper.shouldUseHex() ? DtsHelper.decode_hex_line(line).value : DtsHelper.decode_int_line(line).value + "";
+        return String.valueOf(DtsHelper.decode_int_line(line).value);
     }
 
     private static void generateALevel(AppCompatActivity activity, int last, int levelid, LinearLayout page) throws Exception {
@@ -354,7 +354,7 @@ public class GpuTableEditor {
                     return;
                 }
                 String raw_name = DtsHelper.decode_hex_line(bins.get(last).levels.get(levelid).lines.get(position - 1)).name;
-                String raw_value = DtsHelper.shouldUseHex() ? DtsHelper.decode_hex_line(bins.get(last).levels.get(levelid).lines.get(position - 1)).value : DtsHelper.decode_int_line(bins.get(last).levels.get(levelid).lines.get(position - 1)).value + "";
+                String raw_value = DtsHelper.decode_int_line(bins.get(last).levels.get(levelid).lines.get(position - 1)).value + "";
                 EditText editText = new EditText(activity);
                 editText.setInputType(InputType.TYPE_CLASS_NUMBER);
                 editText.setText(raw_value);

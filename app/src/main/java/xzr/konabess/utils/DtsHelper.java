@@ -1,13 +1,8 @@
 package xzr.konabess.utils;
 
 public class DtsHelper {
-    public static boolean shouldUseHex() {
-        return false;
-    }
-
-    public static int decode_stringed_int(String input) throws Exception {
-        input = input.replace("\"", "")
-                .replace(";", "")
+    public static int decode_stringed_int(String input) throws IllegalArgumentException {
+        input = input.replaceAll("\"|;|\\\\\"", "")
                 .replace("\\a", "\7")
                 .replace("\\b", "\b")
                 .replace("\\f", "\f")
@@ -17,55 +12,61 @@ public class DtsHelper {
                 .replace("\\v", "\11")
                 .replace("\\\\", "\\")
                 .replace("\\'", "'")
-                .replace("\\\"", "\"")
                 .trim();
-        char[] chars = input.toCharArray();
-        if (chars.length != 3)
-            throw new Exception();
-        int ret = 0;
-        for (int i = 1; i <= chars.length; i++) {
-            ret += (int) chars[chars.length - i] * Math.pow(256, i);
+
+        if (input.length() != 3) {
+            throw new IllegalArgumentException("Invalid input length. Expected 3 characters, got: " + input.length());
         }
-        return ret;
+
+        int result = 0;
+        for (int i = 0; i < input.length(); i++) {
+            result = (result << 8) | input.charAt(i); // Shift by 8 bits
+        }
+        return result;
     }
 
-    public static intLine decode_int_line(String line) throws Exception {
+    public static intLine decode_int_line(String line) throws IllegalArgumentException {
+        line = line.trim(); // Trim once at the start
+
         intLine intLine = new intLine();
-        line = line.trim();
-        intLine.name = line;
-        intLine.name = intLine.name.trim();
+        intLine.name = line; // Assign name directly
+
+        // Extract value
         String value = line;
-        if (value.contains("\"")) {
-            intLine.value = decode_stringed_int(value);
-            return intLine;
+
+        try {
+            if (value.contains("\"")) { // Handle stringed integer
+                intLine.value = decode_stringed_int(value);
+            } else if (value.startsWith("0x") || value.startsWith("0X")) { // Hexadecimal
+                intLine.value = Long.parseLong(value.substring(2).trim(), 16);
+            } else { // Decimal
+                intLine.value = Long.parseLong(value.trim());
+            }
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid number format in line: " + line, e);
         }
-        if (value.contains("0x")) {
-            value = value.replace("0x", "").trim();
-            intLine.value = Long.parseLong(value, 16);
-        } else {
-            value = value.trim();
-            intLine.value = Long.parseLong(value);
-        }
+
         return intLine;
     }
 
     public static hexLine decode_hex_line(String line) {
-        hexLine hexLine = new hexLine();
         line = line.trim();
+        hexLine hexLine = new hexLine();
         hexLine.name = line;
-        hexLine.name = hexLine.name.trim();
         hexLine.value = line;
         return hexLine;
     }
 
     public static String encodeIntOrHexLine(String name, String value) {
-        return name + " = <" + value + ">;";
+        return String.format("%s = <%s>;", name, value);
     }
 
     public static String inputToHex(String input) {
-        int intValue = Integer.parseInt(input);
-        String hexValue = Integer.toHexString(intValue);
-        return "0x" + hexValue;
+        try {
+            return String.format("0x%X", Integer.parseInt(input)); // Uppercase hex formatting
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid input: " + input, e);
+        }
     }
 
     public static class intLine {
