@@ -1,0 +1,46 @@
+# Android Studio specific
+.idea/
+*.iml
+*.log
+.gradle/
+local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+
+# Build files
+/build/
+/out/
+/captures/
+
+# Gradle
+.gradle/
+/local.properties
+.DS_Store
+
+# Generated files
+*.apk
+*.ap_
+*.dex
+*.class
+*.jar
+*.keystore
+
+# OS specific
+*.swp
+*~.nib
+*.lock
+*.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+
+# Test results
+/test-output/
+/target/
