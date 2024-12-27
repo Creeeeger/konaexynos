@@ -44,26 +44,6 @@ public class DialogUtil {
         showDetailedError(activity, activity.getResources().getString(err), detail);
     }
 
-    public static void showDetailedInfo(AppCompatActivity activity, String title, String what,
-                                        String detail) {
-        what += "\n" + activity.getResources().getString(R.string.long_press_to_copy);
-        ScrollView scrollView = new ScrollView(activity);
-        TextView textView = new TextView(activity);
-        textView.setTextIsSelectable(true);
-        scrollView.addView(textView);
-        textView.setText(detail);
-        new AlertDialog.Builder(activity)
-                .setTitle(title)
-                .setMessage(what)
-                .setView(scrollView)
-                .create().show();
-    }
-
-    public static void showDetailedInfo(AppCompatActivity activity, int title, int what, String detail) {
-        showDetailedInfo(activity, activity.getResources().getString(title),
-                activity.getResources().getString(what), detail);
-    }
-
     public static AlertDialog getWaitDialog(Context context, int id) {
         return getWaitDialog(context, context.getResources().getString(id));
     }
