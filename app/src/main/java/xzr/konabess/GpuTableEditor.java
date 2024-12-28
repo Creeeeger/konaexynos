@@ -106,15 +106,10 @@ public class GpuTableEditor {
     }
 
     public static void mergeBins() {
-
-        try {
-            bins.get(1).dvfsSize.add(bins.get(0).dvfsSize.get(0));
-            bins.get(1).max.add(bins.get(2).max.get(0));
-            bins.get(1).maxLimit.add(bins.get(3).maxLimit.get(0));
-            bins.get(1).min.add(bins.get(4).min.get(0));
-        } catch (Exception e) {
-            System.out.println("error merge");
-        }
+        bins.get(1).dvfsSize.add(bins.get(0).dvfsSize.get(0));
+        bins.get(1).max.add(bins.get(2).max.get(0));
+        bins.get(1).maxLimit.add(bins.get(3).maxLimit.get(0));
+        bins.get(1).min.add(bins.get(4).min.get(0));
 
         // Remove bins 0, 2, 3 and 4
         for (int i = 4; i >= 0; i--) {
@@ -250,18 +245,14 @@ public class GpuTableEditor {
         return List.of(String.join("", lines));
     }
 
-    public static List<String> genBack(List<String> table) {
-        ArrayList<String> new_dts = new ArrayList<>(linesInDtsCode);
-        new_dts.addAll(binPosition, genTable(1));
-        new_dts.addAll(bin_positiondv, genTable(0));
-        new_dts.addAll(binPositionMin, genTable(4));
-        new_dts.addAll(binPositionMaxLimit, genTable(3));
-        new_dts.addAll(binPositionMax, genTable(2));
-        return new_dts;
-    }
-
-    public static void writeOut(List<String> newDts) throws IOException {
+    public static void writeOut() throws IOException {
         Path filePath = Paths.get(KonaBessCore.dts_path);
+        ArrayList<String> newDts = new ArrayList<>(linesInDtsCode);
+        newDts.addAll(binPosition, genTable(1));
+        newDts.addAll(bin_positiondv, genTable(0));
+        newDts.addAll(binPositionMin, genTable(4));
+        newDts.addAll(binPositionMaxLimit, genTable(3));
+        newDts.addAll(binPositionMax, genTable(2));
 
         // Use try-with-resources for automatic resource management
         try (BufferedWriter writer = Files.newBufferedWriter(filePath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
@@ -414,6 +405,7 @@ public class GpuTableEditor {
                 }
                 return;
             }
+
             if (position == 0) {
                 try {
                     generateBins(activity, page);
@@ -421,10 +413,12 @@ public class GpuTableEditor {
                 }
                 return;
             }
+
             if (position == 1) {
                 try {
                     if (!canAddNewLevel(id, activity))
                         return;
+
                     bins.get(id).levels.add(0, level_clone(bins.get(id).levels.get(0)));
                     bins.get(0).meta.add(0, bins.get(0).meta.get(0));
                     generateLevels(activity, id, page);
@@ -434,13 +428,16 @@ public class GpuTableEditor {
                 }
                 return;
             }
+
             position -= 2;
+
             try {
                 generateALevel(activity, id, position, page);
             } catch (Exception e) {
                 System.out.println(e.getMessage() + e.getCause());
                 DialogUtil.showError(activity, "Add a new level error");
             }
+
         });
 
         listView.setOnItemLongClickListener((parent, view, position, idd) -> {
@@ -497,7 +494,7 @@ public class GpuTableEditor {
 
         for (int i = 0; i < bins.size(); i++) {
             ParamAdapter.item item = new ParamAdapter.item();
-            item.title = KonaBessStr.convert_bins(bins.get(i).id, activity);
+            item.title = KonaBessStr.convertBins(bins.get(i).id, activity);
             item.subtitle = "";
             items.add(item);
         }
@@ -527,7 +524,7 @@ public class GpuTableEditor {
             toolbar.addView(button);
             button.setOnClickListener(v -> {
                 try {
-                    writeOut(genBack(genTable(5)));
+                    writeOut();
                     Toast.makeText(activity, R.string.save_success, Toast.LENGTH_SHORT).show();
                 } catch (Exception e) {
                     System.out.println(e.getMessage() + e.getCause());
