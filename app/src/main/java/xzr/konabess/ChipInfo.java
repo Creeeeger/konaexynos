@@ -1,18 +1,11 @@
 package xzr.konabess;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 public class ChipInfo {
-    public enum type {
-        exynos9820,
-        exynos9825,
-        unknown
-    }
+    public static type which;
 
-    public static int getMaxTableLevels() {
-        return 11;
-    }
-
-    public static String name2chipdesc(type t, AppCompatActivity activity) {
+    public static String name2ChipDesc(type t, AppCompatActivity activity) {
         switch (t) {
             case exynos9820:
                 return activity.getResources().getString(R.string.e9820);
@@ -22,5 +15,9 @@ public class ChipInfo {
         return activity.getResources().getString(R.string.unknown);
     }
 
-    public static type which;
+    public enum type {
+        exynos9820,
+        exynos9825,
+        unknown
+    }
 }
