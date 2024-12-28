@@ -39,14 +39,11 @@
     <string name="getting_freq_table_failed">Failed when getting GPU freq table</string>
     <string name="freq">Frequency</string>
     <string name="unknown_table">Unknown frequency table</string>
-    <string name="help_gpufreq">This is the working frequency of the GPU. You can change the available frequencies in the frequency table by changing this value.\nHowever, remember to make sure that the frequency can find the corresponding voltage in the voltage table, otherwise, it is impossible to boot the phone.\nThe unit of frequency here is Hz, that is to say, add 6 zeros after the MHz frequency. You can view the frequency in MHz in the previous menu. If you don\'t know how many zeros to add, it is recommended to modify only the first few digits of the number.\n</string>
-    <string name="help_bus">This is probably the memory bus frequency related configuration corresponding to the GPU frequency. The value specifies the frequency level.\nPlease do not change the value too large (beyond the level given by the default maximum frequency), which may lead to the failure to find the specified level and the failure to boot the device.</string>
-    <string name="help_acd">ACD may refer to \"auto-calibrating dynamically adaptive clock distribution\"? It seems to be something related to the clock speed adjustment. IDK more about this.</string>
     <string name="unknown">Unknown</string>
     <string name="checking_device">Checking device info. Please wait.</string>
     <string name="select_dtb_title">Select the target chipset</string>
     <string name="select_dtb_msg">There are multiple chipset data in your device. You need to select one to edit.</string>
     <string name="possible_dtb">This may be the chipset data your device are using.</string>
-    <string name="e9825">Exynos 9825</string>
     <string name="e9820">Exynos 9820</string>
+    <string name="e9825">Exynos 9825</string>
 </resources>
