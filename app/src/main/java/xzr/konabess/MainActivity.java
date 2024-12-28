@@ -327,7 +327,7 @@ public class MainActivity extends AppCompatActivity {
                 ArrayList<ParamAdapter.item> items = new ArrayList<>();
                 for (KonaBessCore.dtb dtb : KonaBessCore.dtbs) {
                     items.add(new ParamAdapter.item() {{
-                        title = dtb.id + " " + ChipInfo.name2chipdesc(dtb.type, MainActivity.this);
+                        title = dtb.id + " " + ChipInfo.name2ChipDesc(dtb.type, MainActivity.this);
                         subtitle = dtb.id == dtb_index ?
                                 MainActivity.this.getString(R.string.possible_dtb) : "";
                     }});
