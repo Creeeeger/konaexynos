@@ -31,14 +31,4 @@ public class KonaBessStr {
             return activity.getResources().getString(R.string.freq);
         return input;
     }
-
-    public static String help(String what, AppCompatActivity activity) {
-        if (what.equals("qcom,gpu-freq"))
-            activity.getResources().getString(R.string.help_gpufreq);
-        if (what.contains("bus"))
-            return activity.getResources().getString(R.string.help_bus);
-        if (what.contains("acd"))
-            return activity.getResources().getString(R.string.help_acd);
-        return "";
-    }
 }
