@@ -72,10 +72,6 @@ public class KonaBessCore {
     }
 
     public static void getDtImage(Context context) throws IOException {
-        getRealDtImage(context);
-    }
-
-    private static void getRealDtImage(Context context) throws IOException {
         // Define file paths
         String internalPath = context.getFilesDir().getAbsolutePath() + "/dtb.img";
         String externalPath = "/storage/emulated/0/dtb.img";
@@ -216,7 +212,7 @@ public class KonaBessCore {
         File outputFile = new File(filesDir, "0.dts");
         if (!outputFile.exists() || !outputFile.canRead()) {
             System.out.println("error: " + log);
-            throw new IOException("DTS conversion failed: " + log.toString());
+            throw new IOException("DTS conversion failed: " + log);
         }
     }
 
@@ -284,20 +280,6 @@ public class KonaBessCore {
         OutputStreamWriter outputStreamWriter = new OutputStreamWriter((process.getOutputStream()));
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
         outputStreamWriter.write("dd if=" + context.getFilesDir().getAbsolutePath() + "/dtb_new.img of=/dev/block/by-name/dtb\n");
-        outputStreamWriter.write("exit\n");
-        outputStreamWriter.flush();
-        while (bufferedReader.readLine() != null) {
-        }
-        outputStreamWriter.close();
-        bufferedReader.close();
-        process.destroy();
-    }
-
-    public static void backupDtbImage(Context context) throws IOException {
-        Process process = new ProcessBuilder("su").redirectErrorStream(true).start();
-        OutputStreamWriter outputStreamWriter = new OutputStreamWriter((process.getOutputStream()));
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        outputStreamWriter.write("cp -f " + context.getFilesDir().getAbsolutePath() + "/dtb.img " + "/storage/emulated/0/dtb.img\n");
         outputStreamWriter.write("exit\n");
         outputStreamWriter.flush();
         while (bufferedReader.readLine() != null) {

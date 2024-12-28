@@ -1,17 +1,12 @@
 package xzr.konabess;
 
-import android.app.Activity;
-import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
-import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -22,8 +17,6 @@ import xzr.konabess.adapters.ParamAdapter;
 import xzr.konabess.utils.DialogUtil;
 
 public class MainActivity extends AppCompatActivity {
-    private static Thread permission_worker;
-    private static fileWorker file_worker;
     AlertDialog waiting;
     onBackPressedListener onBackPressedListener = null;
     LinearLayout mainView;
@@ -57,31 +50,6 @@ public class MainActivity extends AppCompatActivity {
             onBackPressedListener.onBackPressed();
         else
             super.onBackPressed();
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == Activity.RESULT_OK) {
-            file_worker.uri = data.getData();
-            if (file_worker != null) {
-                file_worker.start();
-                file_worker = null;
-            }
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            if (permission_worker != null) {
-                permission_worker.start();
-                permission_worker = null;
-            }
-        } else {
-            Toast.makeText(this, R.string.storage_permission_failed, Toast.LENGTH_SHORT).show();
-        }
     }
 
     void showMainView() {
@@ -118,14 +86,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    static class fileWorker extends Thread {
-        public Uri uri;
-    }
-
     public static abstract class onBackPressedListener {
         public abstract void onBackPressed();
     }
-
 
     class repackLogic extends Thread {
         boolean is_err;

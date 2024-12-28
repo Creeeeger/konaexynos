@@ -1,16 +1,10 @@
 <resources>
     <string name="app_name">KonaExynos</string>
     <string name="environ_setup_failed">Failed when setting up the environment</string>
-    <string name="storage_permission_failed">Unable to get storage permission</string>
     <string name="repack_and_flash">Repack and flash new image</string>
-    <string name="backup_old_image">Backup old image</string>
-    <string name="will_backup_to">The old image will be extracted to</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="edit_gpu_freq_table">Edit GPU freq table</string>
-    <string name="backuping_img">Doing backup, please wait</string>
-    <string name="failed_backup">Failed when doing backup</string>
-    <string name="backup_success">Done</string>
     <string name="repacking">Repacking DTB image, please wait</string>
     <string name="repack_failed">Failed when repacking</string>
     <string name="flashing_boot">Flashing DTB image. Please give root permission and wait.</string>
