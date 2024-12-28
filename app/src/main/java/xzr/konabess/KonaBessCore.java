@@ -5,6 +5,7 @@ import android.content.Context;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -75,23 +76,56 @@ public class KonaBessCore {
     }
 
     private static void getRealDtImage(Context context) throws IOException {
-        Process process = new ProcessBuilder("su").redirectErrorStream(true).start();
-        OutputStreamWriter outputStreamWriter = new OutputStreamWriter((process.getOutputStream()));
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        outputStreamWriter.write("dd if=/dev/block/by-name/dtb" + " of=" + context.getFilesDir().getAbsolutePath() + "/dtb.img\n");
-        outputStreamWriter.write("chmod 777 " + context.getFilesDir().getAbsolutePath() + "/dtb.img\n");
-        outputStreamWriter.write("exit\n");
-        outputStreamWriter.flush();
-        while (bufferedReader.readLine() != null) {
-        }
-        outputStreamWriter.close();
-        bufferedReader.close();
-        process.destroy();
+        // Define file paths
+        String internalPath = context.getFilesDir().getAbsolutePath() + "/dtb.img";
+        String externalPath = "/storage/emulated/0/dtb.img";
 
-        File target = new File(context.getFilesDir().getAbsolutePath() + "/dtb.img");
+        // Prepare shell commands
+        String[] commands = {
+                "dd if=/dev/block/by-name/dtb of=" + internalPath,
+                "chmod 777 " + internalPath,
+                "cp -f " + internalPath + " " + externalPath
+        };
+
+        // Execute commands in shell
+        Process process = null;
+        try {
+            process = new ProcessBuilder("su").redirectErrorStream(true).start();
+
+            try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+
+                // Write commands
+                for (String command : commands) {
+                    writer.write(command + "\n");
+                }
+                writer.write("exit\n");
+                writer.flush();
+
+                // Read process output to avoid hanging
+                while (reader.readLine() != null) {
+                    // Consume output (optional: log or debug output if necessary)
+                }
+
+                // Wait for process to complete
+                if (process.waitFor() != 0) {
+                    throw new IOException("Shell command execution failed.");
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // Restore interrupted status
+            throw new IOException("Process interrupted", e);
+        } finally {
+            if (process != null) {
+                process.destroy();
+            }
+        }
+
+        // Validate created file
+        File target = new File(internalPath);
         if (!target.exists() || !target.canRead()) {
-            target.delete();
-            throw new IOException();
+            if (target.exists()) target.delete(); // Clean up if file is invalid
+            throw new IOException("Failed to create or read dtb.img");
         }
     }
 
