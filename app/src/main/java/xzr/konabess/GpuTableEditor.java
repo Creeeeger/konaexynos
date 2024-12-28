@@ -317,7 +317,7 @@ public class GpuTableEditor {
         bufferedWriter.close();
     }
 
-    private static String generateSubtitle(String line) throws Exception {
+    private static String generateSubtitle(String line) {
         return String.valueOf(DtsHelper.decode_int_line(line).value);
     }
 
@@ -391,7 +391,7 @@ public class GpuTableEditor {
         return next;
     }
 
-    private static void offset_initial_level_old(int offset) throws Exception {
+    private static void offset_initial_level_old(int offset) {
         boolean started = false;
         int bracket = 0;
         for (int i = 0; i < lines_in_dts.size(); i++) {
@@ -427,7 +427,7 @@ public class GpuTableEditor {
         }
     }
 
-    private static void offset_initial_level(int bin_id, int offset) throws Exception {
+    private static void offset_initial_level(int bin_id, int offset) {
         if (ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825) {
             offset_initial_level_old(offset);
             return;
@@ -441,7 +441,7 @@ public class GpuTableEditor {
         }
     }
 
-    private static void offset_ca_target_level(int bin_id, int offset) throws Exception {
+    private static void offset_ca_target_level(int bin_id, int offset) {
         for (int i = 0; i < bins.get(bin_id).header.size(); i++) {
             String line = bins.get(bin_id).header.get(i);
             if (line.contains("qcom,ca-target-pwrlevel")) {
