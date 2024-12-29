@@ -1,0 +1,87 @@
+name: Build APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # Use Ubuntu runner
+
+    steps:
+    # Step 1: Checkout Code
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # Step 2: Setup Java Environment
+    - name: Setup Java Environment
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'  # Use Zulu OpenJDK
+        java-version: '11'    # Java 11 for compatibility
+
+    # Step 3: Install Required Dependencies
+    - name: Install Required Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y wget curl unzip
+
+    # Step 4: Setup Android SDK
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    # Step 5: Verify Java and Android SDK Versions
+    - name: Verify Environment Configuration
+      run: |
+        echo "Java Version:"
+        java -version
+        echo "Gradle Version:"
+        ./gradlew --version || gradle --version
+        echo "Android SDK Path: $ANDROID_SDK_ROOT"
+        echo "Available SDK Platforms:"
+        ls $ANDROID_SDK_ROOT/platforms || echo "No SDK platforms found!"
+
+    # Step 6: Create local.properties for Android SDK path
+    - name: Generate local.properties
+      run: |
+        echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+
+    # Step 7: Ensure Gradle Wrapper Permissions
+    - name: Make Gradle Wrapper Executable
+      run: chmod +x ./gradlew
+
+    # Step 8: Validate Gradle Wrapper
+    - name: Validate Gradle Wrapper
+      run: |
+        if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+          echo "Gradle wrapper jar not found! Regenerating wrapper..."
+          gradle wrapper
+        fi
+
+    # Step 9: Build APK
+    - name: Build APK
+      run: ./gradlew assembleDebug
+
+    # Step 10: Verify APK Output
+    - name: Verify APK Output
+      run: |
+        APK_PATH=$(find . -name "*.apk" | head -n 1) # Find the first APK file in the directory
+        if [ -z "$APK_PATH" ]; then
+          echo "Error: No APK file found in the project!"
+          exit 1
+        else
+          echo "APK built successfully at $APK_PATH"
+        fi
+
+    # Step 11: Upload APK Artifact
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: konaexynos-apks # Generic name to handle multiple APKs
+        path: "**/*.apk"       # Upload all APK files found in the project
