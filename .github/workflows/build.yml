@@ -23,8 +23,8 @@ jobs:
     - name: Setup Java Environment
       uses: actions/setup-java@v3
       with:
-        distribution: 'temurin'  # Use temurin OpenJDK
-        java-version: '17'    # Java 17 for compatibility
+        distribution: 'temurin'  # Use Eclipse Temurin OpenJDK
+        java-version: '21'       # Use Java 21
 
     # Step 3: Install Required Dependencies
     - name: Install Required Dependencies
