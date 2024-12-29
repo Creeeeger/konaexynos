@@ -57,10 +57,6 @@ public class DtsHelper {
         return hexLine;
     }
 
-    public static String encodeIntOrHexLine(String name, String value) {
-        return String.format("%s = <%s>;", name, value);
-    }
-
     public static String inputToHex(String input) {
         try {
             return String.format("0x%X", Integer.parseInt(input)); // Uppercase hex formatting

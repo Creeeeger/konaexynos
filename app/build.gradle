@@ -4,17 +4,15 @@ plugins {
 }
 
 android {
-    dependencies{
-        implementation 'com.google.android.material:material:1.11.0'
+    dependencies {
+        implementation 'com.google.android.material:material:1.12.0'
     }
 
     compileSdk 34
-    buildToolsVersion '34.0.0'
-
     defaultConfig {
         applicationId 'crecker.konaexynos'
         minSdk 33
-        targetSdk 33
+        targetSdk 35
         versionCode 23
         versionName '1.0'
     }
@@ -26,8 +24,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
     }
     namespace 'xzr.konabess'
     lint {
