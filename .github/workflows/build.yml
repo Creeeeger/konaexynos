@@ -23,8 +23,8 @@ jobs:
     - name: Setup Java Environment
       uses: actions/setup-java@v3
       with:
-        distribution: 'zulu'  # Use Zulu OpenJDK
-        java-version: '11'    # Java 11 for compatibility
+        distribution: 'temurin'  # Use temurin OpenJDK
+        java-version: '17'    # Java 17 for compatibility
 
     # Step 3: Install Required Dependencies
     - name: Install Required Dependencies
