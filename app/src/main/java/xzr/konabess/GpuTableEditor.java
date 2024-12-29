@@ -33,7 +33,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import xzr.konabess.adapters.ParamAdapter;
@@ -370,8 +369,7 @@ public class GpuTableEditor {
                     bins.get(0).meta.add(bins.get(0).meta.get(bins.get(0).meta.size() - 1));
                     generateLevels(activity, id, page);
                 } catch (Exception e) {
-                    System.out.println(e.getMessage() + e.getCause());
-//                    DialogUtil.showError(activity, "Can't add new level");
+                    DialogUtil.showError(activity, "Can't add new level");
                 }
                 return;
             }
@@ -829,7 +827,6 @@ public class GpuTableEditor {
                 try {
                     generateBins(activity, page);
                 } catch (Exception e) {
-                    System.out.println(e.getMessage() + e.getCause());
                     DialogUtil.showError(activity, "Failed to generate bins");
                 }
                 showedView.addView(page);
