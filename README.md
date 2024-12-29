@@ -3,7 +3,7 @@
 ### Support list
 * Exynos 9820
 * Exynos 9825
-* For a new device open an issue and i will add it as soon as possible
+* For a new device study the code yourself and add it
 
 ### What is this?
 
@@ -21,13 +21,12 @@
 - select your chipset 
 - edit the table
 - press save gpu freq table
-- press repack and flash image (if u want to get safe press backup old image and follow the screen instructions)
+- press repack and flash image 
 - reboot and see if it works
 
 ### How much improvement can I get?
 
-- nobody knows it (yet)
-- I will test it on a s10 5g
+- some since you can underclock and add new frequencies
 
 ### Prebuilt binaries
 
@@ -65,3 +64,11 @@
 - If there are any issues or whatever open an issue 
 - If you want to contribute open pull request 
 - for new device open issue with device, chipset name and android version 
+
+## Todo
+- Add material you to the level selector
+- check if reworked Core works
+- Optimize gpu editor
+- Fix the bug that occasionally saves files improperly.
+
+Feel free to contribute :)
