@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.text.InputType;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
@@ -123,7 +125,6 @@ public class GpuTableEditor {
             // Merge bins if all decoding steps succeed
             mergeBins();
         } catch (Exception e) {
-            e.printStackTrace();
             System.err.println("Error during decoding process: " + e.getMessage());
         }
     }
@@ -315,18 +316,16 @@ public class GpuTableEditor {
                 .orElseThrow(Exception::new); // Throw an exception if no match is found
     }
 
-    private static void generateLevels(AppCompatActivity activity, int id, LinearLayout page) throws Exception {
-        bins.get(0).min.set(0, bins.get(0).levels.get(bins.get(0).levels.size() - 1));
-        bins.get(0).max.set(0, bins.get(0).levels.get(0));
-        bins.get(0).maxLimit.set(0, bins.get(0).levels.get(0));
-        bins.get(0).dvfsSize.set(0, inputToHex(bins.get(0).levels.size()));
+    private static void generateLevels1(AppCompatActivity activity, int id, LinearLayout page) throws Exception {
+        generateData();
 
         ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
             @Override
             public void onBackPressed() {
                 try {
                     generateBins(activity, page);
-                } catch (Exception ignored) {
+                } catch (Exception e) {
+                    DialogUtil.showError(activity, "Generate Bins error");
                 }
             }
         };
@@ -361,83 +360,242 @@ public class GpuTableEditor {
         }});
 
         listView.setOnItemClickListener((parent, view, position, id1) -> {
-            if (position == items.size() - 1) {
-                try {
-                    if (!canAddNewLevel(id, activity))
-                        return;
-                    bins.get(id).levels.add(bins.get(id).levels.size() - 1, level_clone(bins.get(id).levels.get(bins.get(id).levels.size() - 1)));
-                    bins.get(0).meta.add(bins.get(0).meta.get(bins.get(0).meta.size() - 1));
-                    generateLevels(activity, id, page);
-                } catch (Exception e) {
-                    DialogUtil.showError(activity, "Can't add new level");
-                }
-                return;
-            }
+            if (posIsSizeMinOne(activity, id, page, position, items)) return;
 
-            if (position == 0) {
-                try {
-                    generateBins(activity, page);
-                } catch (Exception ignored) {
-                }
-                return;
-            }
+            if (posIs0(activity, page, position)) return;
 
-            if (position == 1) {
-                try {
-                    if (!canAddNewLevel(id, activity))
-                        return;
-
-                    bins.get(id).levels.add(0, level_clone(bins.get(id).levels.get(0)));
-                    bins.get(0).meta.add(0, bins.get(0).meta.get(0));
-                    generateLevels(activity, id, page);
-                } catch (Exception e) {
-                    System.out.println(e.getMessage() + e.getCause());
-                    DialogUtil.showError(activity, "Clone a level error");
-                }
-                return;
-            }
+            if (posIs1(activity, id, page, position)) return;
 
             position -= 2;
 
             try {
                 generateALevel(activity, id, position, page);
             } catch (Exception e) {
-                System.out.println(e.getMessage() + e.getCause());
                 DialogUtil.showError(activity, "Add a new level error");
             }
-
         });
 
         listView.setOnItemLongClickListener((parent, view, position, idd) -> {
-            if (position == items.size() - 1)
-                return true;
-            if (bins.get(id).levels.size() == 1)
-                return true;
-            try {
-                new MaterialAlertDialogBuilder(activity)
-                        .setTitle(R.string.remove)
-                        .setMessage(String.format(activity.getResources().getString(R.string.remove_msg), getFrequencyFromLevel(bins.get(id).levels.get(position - 2)) / 1000))
-                        .setPositiveButton(R.string.yes, (dialog, which) -> {
-                            bins.get(id).levels.remove(position - 2);
-                            bins.get(id).meta.remove(position - 2);
-                            try {
-                                generateLevels(activity, id, page);
-                            } catch (Exception e) {
-                                System.out.println(e.getMessage() + e.getCause());
-                                DialogUtil.showError(activity, "Remove a frequency error");
-                            }
-                        })
-                        .setNegativeButton(R.string.no, null)
-                        .create().show();
-            } catch (Exception e) {
-                System.out.println(e.getMessage());
-            }
-            return true;
+            return removeFrequency(activity, id, page, position, items);
         });
 
         listView.setAdapter(new ParamAdapter(items, activity));
         page.removeAllViews();
         page.addView(listView);
+    }
+
+    private static void generateLevels(AppCompatActivity activity, int id, LinearLayout page) throws Exception {
+        generateData();
+
+        // Handle back press
+        ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
+            @Override
+            public void onBackPressed() {
+                try {
+                    generateBins(activity, page);
+                } catch (Exception e) {
+                    DialogUtil.showError(activity, "Generate Bins error");
+                }
+            }
+        };
+
+        // Material RecyclerView instead of ListView
+        RecyclerView recyclerView = new RecyclerView(activity);
+        recyclerView.setLayoutManager(new LinearLayoutManager(activity));
+
+        // Create items
+        ArrayList<ParamAdapter.item> items = new ArrayList<>();
+
+        // Add the 'Back' button
+        items.add(new ParamAdapter.item() {{
+            title = activity.getResources().getString(R.string.back);
+            subtitle = "";
+        }});
+
+        // Add the 'New Item' button
+        items.add(new ParamAdapter.item() {{
+            title = activity.getResources().getString(R.string.new_item);
+            subtitle = activity.getResources().getString(R.string.new_desc);
+        }});
+
+        // Add frequency levels
+        for (level level : bins.get(id).levels) {
+            long freq = getFrequencyFromLevel(level);
+            if (freq == 0) continue;
+
+            ParamAdapter.item item = new ParamAdapter.item();
+            item.title = freq / 1000 + "MHz";
+            item.subtitle = "";
+            items.add(item);
+        }
+
+        // Add another 'New Item' at the end
+        items.add(new ParamAdapter.item() {{
+            title = activity.getResources().getString(R.string.new_item);
+            subtitle = activity.getResources().getString(R.string.new_desc);
+        }});
+
+        // Set Adapter with Material You design
+        MaterialLevelAdapter adapter = new MaterialLevelAdapter(items, activity, position -> {
+            // Handle item clicks
+            if (posIsSizeMinOne(activity, id, page, position, items)) return;
+            if (posIs0(activity, page, position)) return;
+            if (posIs1(activity, id, page, position)) return;
+
+            // Adjust position for frequency selection
+            position -= 2;
+
+            try {
+                generateALevel(activity, id, position, page);
+            } catch (Exception e) {
+                DialogUtil.showError(activity, "Add a new level error");
+            }
+        });
+
+        recyclerView.setAdapter(adapter);
+
+        // Handle long-press for removing frequencies
+        GestureDetector gestureDetector = new GestureDetector(activity, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public void onLongPress(MotionEvent e) {
+                View child = recyclerView.findChildViewUnder(e.getX(), e.getY());
+                if (child != null) {
+                    int position = recyclerView.getChildAdapterPosition(child);
+
+                    // Handle long-press for deletion
+                    removeFrequency(activity, id, page, position, items);
+                }
+            }
+
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                return true; // Ensure single-tap gestures are detected
+            }
+        });
+
+        // Attach both click and long-press handling
+        recyclerView.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
+            @Override
+            public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+                View child = rv.findChildViewUnder(e.getX(), e.getY());
+
+                if (child != null && gestureDetector.onTouchEvent(e)) {
+                    int position = rv.getChildAdapterPosition(child);
+
+                    // Handle **single-click** immediately
+                    if (e.getAction() == MotionEvent.ACTION_UP) { // Direct click
+                        if (posIsSizeMinOne(activity, id, page, position, items)) return true;
+                        if (posIs0(activity, page, position)) return true;
+                        if (posIs1(activity, id, page, position)) return true;
+
+                        // Adjust position for frequency selection
+                        position -= 2;
+
+                        try {
+                            generateALevel(activity, id, position, page);
+                        } catch (Exception ex) {
+                            DialogUtil.showError(activity, "Add a new level error");
+                        }
+                    }
+                }
+                return false;
+            }
+
+            @Override
+            public void onTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+                // No-op
+            }
+
+            @Override
+            public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {
+                // No-op
+            }
+        });
+
+        // Dynamic MaterialCardView container
+        MaterialCardView cardView = DialogUtil.createDynamicCard(activity, recyclerView);
+
+        // Add the styled RecyclerView to the page
+        page.removeAllViews();
+        page.addView(cardView);
+    }
+
+    private static boolean removeFrequency(AppCompatActivity activity, int id, LinearLayout page, int position, ArrayList<ParamAdapter.item> items) {
+        if (position == items.size() - 1)
+            return true;
+        if (bins.get(id).levels.size() == 1)
+            return true;
+        try {
+            new MaterialAlertDialogBuilder(activity)
+                    .setTitle(R.string.remove)
+                    .setMessage(String.format(activity.getResources().getString(R.string.remove_msg), getFrequencyFromLevel(bins.get(id).levels.get(position - 2)) / 1000))
+                    .setPositiveButton(R.string.yes, (dialog, which) -> {
+                        bins.get(id).levels.remove(position - 2);
+                        bins.get(id).meta.remove(position - 2);
+                        try {
+                            generateLevels(activity, id, page);
+                        } catch (Exception e) {
+                            DialogUtil.showError(activity, "Remove a frequency error");
+                        }
+                    })
+                    .setNegativeButton(R.string.no, null)
+                    .create().show();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        return true;
+    }
+
+    private static boolean posIsSizeMinOne(AppCompatActivity activity, int id, LinearLayout page, int position, ArrayList<ParamAdapter.item> items) {
+        if (position == items.size() - 1) {
+            try {
+                if (!canAddNewLevel(id, activity))
+                    return true;
+                bins.get(id).levels.add(bins.get(id).levels.size() - 1, level_clone(bins.get(id).levels.get(bins.get(id).levels.size() - 1)));
+                bins.get(0).meta.add(bins.get(0).meta.get(bins.get(0).meta.size() - 1));
+                generateLevels(activity, id, page);
+            } catch (Exception e) {
+                DialogUtil.showError(activity, "Can't add new level");
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private static void generateData() {
+        bins.get(0).min.set(0, bins.get(0).levels.get(bins.get(0).levels.size() - 1));
+        bins.get(0).max.set(0, bins.get(0).levels.get(0));
+        bins.get(0).maxLimit.set(0, bins.get(0).levels.get(0));
+        bins.get(0).dvfsSize.set(0, inputToHex(bins.get(0).levels.size()));
+    }
+
+    private static boolean posIs1(AppCompatActivity activity, int id, LinearLayout page, int position) {
+        if (position == 1) {
+            try {
+                if (!canAddNewLevel(id, activity))
+                    return true;
+
+                bins.get(id).levels.add(0, level_clone(bins.get(id).levels.get(0)));
+                bins.get(0).meta.add(0, bins.get(0).meta.get(0));
+                generateLevels(activity, id, page);
+            } catch (Exception e) {
+                DialogUtil.showError(activity, "Clone a level error");
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean posIs0(AppCompatActivity activity, LinearLayout page, int position) {
+        if (position == 0) {
+            try {
+                generateBins(activity, page);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            return true;
+        }
+        return false;
     }
 
     private static void generateALevel(AppCompatActivity activity, int last, int levelID, LinearLayout page) throws Exception {
