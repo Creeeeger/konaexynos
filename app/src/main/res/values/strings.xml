@@ -6,7 +6,6 @@
     <string name="cancel">Cancel</string>
     <string name="edit_gpu_freq_table">Edit GPU freq table</string>
     <string name="repacking">Repacking DTB image, please wait</string>
-    <string name="repack_failed">Failed when repacking</string>
     <string name="flashing_boot">Flashing DTB image. Please give root permission and wait.</string>
     <string name="flashing_failed">Failed when flashing the image, please check root permission.</string>
     <string name="reboot_complete_title">Reboot to complete changes</string>
@@ -14,7 +13,6 @@
     <string name="yes">Yes</string>
     <string name="no">No</string>
     <string name="failed_reboot">Failed when trying to reboot,. Please check root permission.</string>
-    <string name="getting_image">Getting boot image. Please give root permission and wait.</string>
     <string name="failed_get_boot">Failed when getting boot image. Please check root permission.</string>
     <string name="unpacking">Unpacking the image. Please wait.</string>
     <string name="unpack_failed">Failed when unpacking</string>
@@ -22,7 +20,6 @@
     <string name="failed_checking_platform">Failed when checking the platform</string>
     <string name="error">Error</string>
     <string name="long_press_to_copy">( Long press to copy )</string>
-    <string name="please_wait">Please wait</string>
     <string name="back">Back</string>
     <string name="save">Save</string>
     <string name="save_success">Saved</string>
