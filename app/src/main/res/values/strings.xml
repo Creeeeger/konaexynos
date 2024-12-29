@@ -41,6 +41,7 @@
     <string name="select_dtb_title">Select the target chipset</string>
     <string name="select_dtb_msg">There are multiple chipset data in your device. You need to select one to edit.</string>
     <string name="possible_dtb">This may be the chipset data your device are using.</string>
+    <string name="wait">Please wait Boot image is getting extracted</string>
     <string name="e9820">Exynos 9820</string>
     <string name="e9825">Exynos 9825</string>
 </resources>

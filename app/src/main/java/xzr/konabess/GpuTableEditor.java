@@ -60,57 +60,73 @@ public class GpuTableEditor {
     }
 
     public static void decode() {
-        int start, end;
+        // Temporary storage for extracted lines
+        List<String> dvLines = new ArrayList<>();
+        List<String> binLines = new ArrayList<>();
+        List<String> maxLines = new ArrayList<>();
+        List<String> maxLimitLines = new ArrayList<>();
+        List<String> minLines = new ArrayList<>();
 
+        // Loop through the lines
         for (int i = 0; i < linesInDtsCode.size(); i++) {
-            String currentLine = linesInDtsCode.get(i).trim();
+            String currentLine = linesInDtsCode.get(i).trim().replace(">;", "");
 
             if (isExynos()) {
+                // 1. gpu_dvfs_table_size
                 if (currentLine.contains("gpu_dvfs_table_size = <")) {
-                    if (bin_positiondv < 0) bin_positiondv = i; // Set position only if not set
-                    decodeTableSize(Collections.singletonList(linesInDtsCode.remove(i))); // Process and remove line
-                    i--; // Adjust index due to removal
+                    if (bin_positiondv < 0) bin_positiondv = i; // Set position
+                    dvLines.add(linesInDtsCode.remove(i)); // Collect and remove line
+                    i--; // Adjust index
                     continue;
                 }
 
+                // 2. gpu_dvfs_table
                 if (currentLine.contains("gpu_dvfs_table = ")) {
-                    start = end = i;
-                    if (binPosition < 0) binPosition = i;
-                    decode_bin(linesInDtsCode.subList(start, end + 1));
-                    linesInDtsCode.subList(start, end + 1).clear();
-                    i = start - 1; // Adjust index
+                    if (binPosition < 0) binPosition = i; // Set position
+                    binLines.add(linesInDtsCode.remove(i)); // Collect and remove line
+                    i--; // Adjust index
                     continue;
                 }
 
+                // 3. gpu_max_clock
                 if (currentLine.contains("gpu_max_clock = <")) {
-                    start = end = i;
-                    if (binPositionMax < 0) binPositionMax = i;
-                    decodeTableMax(linesInDtsCode.subList(start, end + 1));
-                    linesInDtsCode.subList(start, end + 1).clear();
-                    i = start - 1;
+                    if (binPositionMax < 0) binPositionMax = i; // Set position
+                    maxLines.add(linesInDtsCode.remove(i)); // Collect and remove line
+                    i--; // Adjust index
                     continue;
                 }
 
+                // 4. gpu_max_clock_limit
                 if (currentLine.contains("gpu_max_clock_limit = <")) {
-                    start = end = i;
-                    if (binPositionMaxLimit < 0) binPositionMaxLimit = i;
-                    decodeTableMaxLimit(linesInDtsCode.subList(start, end + 1));
-                    linesInDtsCode.subList(start, end + 1).clear();
-                    i = start - 1;
+                    if (binPositionMaxLimit < 0) binPositionMaxLimit = i; // Set position
+                    maxLimitLines.add(linesInDtsCode.remove(i)); // Collect and remove line
+                    i--; // Adjust index
                     continue;
                 }
 
+                // 5. gpu_min_clock
                 if (currentLine.contains("gpu_min_clock = <")) {
-                    start = end = i;
-                    if (binPositionMin < 0) binPositionMin = i;
-                    decodeTableMin(linesInDtsCode.subList(start, end + 1));
-                    linesInDtsCode.subList(start, end + 1).clear();
-                    i = start - 1;
+                    if (binPositionMin < 0) binPositionMin = i; // Set position
+                    minLines.add(linesInDtsCode.remove(i)); // Collect and remove line
+                    i--; // Adjust index
                 }
             }
         }
 
-        mergeBins();
+        // Decode collected data
+        try {
+            if (!dvLines.isEmpty()) decodeTableSize(dvLines);
+            if (!binLines.isEmpty()) decode_bin(binLines);
+            if (!maxLines.isEmpty()) decodeTableMax(maxLines);
+            if (!maxLimitLines.isEmpty()) decodeTableMaxLimit(maxLimitLines);
+            if (!minLines.isEmpty()) decodeTableMin(minLines);
+
+            // Merge bins if all decoding steps succeed
+            mergeBins();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Error during decoding process: " + e.getMessage());
+        }
     }
 
     private static boolean isExynos() {
@@ -173,7 +189,6 @@ public class GpuTableEditor {
         String[] hexArray = lines.get(0)
                 .trim()
                 .replace("gpu_dvfs_table = <", "")
-                .replace(">;", "")
                 .split(" ");
 
         List<List<String>> result = new ArrayList<>();
@@ -203,68 +218,64 @@ public class GpuTableEditor {
     private static level decodeTableFrequency(String lines) {
         level level = new level();
         level.lines = new ArrayList<>();
-        level.lines.add(lines.trim());
+        level.lines.add(lines.trim().replace(">;", ""));
         return level;
     }
 
-    public static List<String> genTable(int type) {
-        ArrayList<String> lines = new ArrayList<>();
+    public static List<String> genTable(int type, AppCompatActivity activity) {
+        if (!isExynos()) {
+            return List.of();
+        }
 
-        if (isExynos()) {
-            if (type == 0) {
-                lines.add("gpu_dvfs_table_size = <");
-                lines.addAll(bins.get(0).dvfsSize.get(0).lines);
-                lines.add(">;");
-            }
+        List<String> lines = new ArrayList<>();
 
-            if (type == 1) {
+        switch (type) {
+            case 0 ->
+                    appendLines(lines, "gpu_dvfs_table_size = <", bins.get(0).dvfsSize.get(0).lines);
+            case 1 -> {
                 lines.add("gpu_dvfs_table = <");
                 int l = 0;
-                for (int i = 0; i < bins.get(0).levels.size(); i++) {
-                    lines.addAll(bins.get(0).levels.get(i).lines);
+                for (var level : bins.get(0).levels) {
+                    lines.addAll(level.lines);
                     lines.add(" ");
-                    List<String> metaLines = bins.get(0).meta.get(l).lines;
-                    for (String metaLine : metaLines) {
+                    for (String metaLine : bins.get(0).meta.get(l++).lines) {
                         lines.add(metaLine.trim());
                         lines.add(" ");
                     }
-                    l++;
                 }
-
-                lines.remove(lines.size() - 1);
+                lines.remove(lines.size() - 1); // Remove trailing space
                 lines.add(">;");
             }
+            case 2 -> appendLines(lines, "gpu_max_clock = <", bins.get(0).max.get(0).lines);
+            case 3 ->
+                    appendLines(lines, "gpu_max_clock_limit = <", bins.get(0).maxLimit.get(0).lines);
+            case 4 -> appendLines(lines, "gpu_min_clock = <", bins.get(0).min.get(0).lines);
+            default -> throw new IllegalArgumentException("Invalid type: " + type);
+        }
 
-            if (type == 2) {
-                lines.add("gpu_max_clock = <");
-                lines.addAll(bins.get(0).max.get(0).lines);
-                lines.add(">;");
-            }
-
-            if (type == 3) {
-                lines.add("gpu_max_clock_limit = <");
-                lines.addAll(bins.get(0).maxLimit.get(0).lines);
-                lines.add(">;");
-            }
-
-            if (type == 4) {
-                lines.add("gpu_min_clock = <");
-                lines.addAll(bins.get(0).min.get(0).lines);
-                lines.add(">;");
-            }
+        if (!List.of(String.join("", lines)).toString().contains("0x")) {
+            System.out.println("table: " + List.of(String.join("", lines)).toString());
+            DialogUtil.showError(activity, "Something is messed up with the data");
+            throw new RuntimeException("Output does not contain '0x' so something is messed up");
         }
 
         return List.of(String.join("", lines));
     }
 
-    public static void writeOut() throws IOException {
+    private static void appendLines(List<String> lines, String prefix, List<String> content) {
+        lines.add(prefix);
+        lines.addAll(content);
+        lines.add(">;");
+    }
+
+    public static void writeOut(AppCompatActivity activity) throws IOException {
         Path filePath = Paths.get(KonaBessCore.dts_path);
         ArrayList<String> newDts = new ArrayList<>(linesInDtsCode);
-        newDts.addAll(binPosition, genTable(1));
-        newDts.addAll(bin_positiondv, genTable(0));
-        newDts.addAll(binPositionMin, genTable(4));
-        newDts.addAll(binPositionMaxLimit, genTable(3));
-        newDts.addAll(binPositionMax, genTable(2));
+        newDts.addAll(binPosition, genTable(1, activity));
+        newDts.addAll(bin_positiondv, genTable(0, activity));
+        newDts.addAll(binPositionMin, genTable(4, activity));
+        newDts.addAll(binPositionMaxLimit, genTable(3, activity));
+        newDts.addAll(binPositionMax, genTable(2, activity));
 
         // Use try-with-resources for automatic resource management
         try (BufferedWriter writer = Files.newBufferedWriter(filePath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
@@ -297,13 +308,14 @@ public class GpuTableEditor {
     }
 
     private static long getFrequencyFromLevel(level level) throws Exception {
-        for (String line : level.lines) {
-            if (line.contains("0x")) {
-                return DtsHelper.decode_int_line(line).value;
-            }
-        }
-        throw new Exception();
+        return level.lines.stream() // Stream through lines
+                .filter(line -> line.contains("0x")) // Find the first line containing "0x"
+                .findFirst() // Get the first match
+                .map(DtsHelper::decode_int_line) // Decode the line
+                .map(decoded -> decoded.value) // Extract the value
+                .orElseThrow(Exception::new); // Throw an exception if no match is found
     }
+
     private static void generateLevels(AppCompatActivity activity, int id, LinearLayout page) throws Exception {
         bins.get(0).min.set(0, bins.get(0).levels.get(bins.get(0).levels.size() - 1));
         bins.get(0).max.set(0, bins.get(0).levels.get(0));
@@ -359,7 +371,7 @@ public class GpuTableEditor {
                     generateLevels(activity, id, page);
                 } catch (Exception e) {
                     System.out.println(e.getMessage() + e.getCause());
-                    DialogUtil.showError(activity, "Can't add new level");
+//                    DialogUtil.showError(activity, "Can't add new level");
                 }
                 return;
             }
@@ -515,70 +527,6 @@ public class GpuTableEditor {
         page.addView(cardView);
     }
 
-    public static class MaterialLevelAdapter extends RecyclerView.Adapter<MaterialLevelAdapter.ViewHolder> {
-        private final ArrayList<ParamAdapter.item> items;
-        private final Context context;
-        private final OnItemClickListener listener;
-
-        public interface OnItemClickListener {
-            void onItemClick(int position);
-        }
-
-        public MaterialLevelAdapter(ArrayList<ParamAdapter.item> items, Context context, OnItemClickListener listener) {
-            this.items = items;
-            this.context = context;
-            this.listener = listener;
-        }
-
-        @NonNull
-        @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            // MaterialCardView for each item
-            MaterialCardView cardView = new MaterialCardView(context);
-            cardView.setCardElevation(6f);
-            cardView.setStrokeWidth(2);
-
-            int colorPrimary = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorPrimaryContainer);
-            int strokeColor = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorPrimary);
-
-            cardView.setCardBackgroundColor(colorPrimary);
-            cardView.setStrokeColor(strokeColor);
-
-            // TextView inside the card
-            MaterialTextView textView = new MaterialTextView(context);
-            textView.setPadding(32, 24, 32, 24);
-            textView.setTextSize(16);
-            textView.setTextColor(DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorOnSurface));
-
-            cardView.addView(textView);
-
-            return new ViewHolder(cardView, textView);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            ParamAdapter.item item = items.get(position);
-            holder.textView.setText(item.title + "\n" + item.subtitle);
-
-            // Handle item clicks
-            holder.itemView.setOnClickListener(v -> listener.onItemClick(position));
-        }
-
-        @Override
-        public int getItemCount() {
-            return items.size();
-        }
-
-        static class ViewHolder extends RecyclerView.ViewHolder {
-            MaterialTextView textView;
-
-            public ViewHolder(@NonNull View itemView, MaterialTextView textView) {
-                super(itemView);
-                this.textView = textView;
-            }
-        }
-    }
-
     private static void generateBins(AppCompatActivity activity, LinearLayout page) throws Exception {
         // Handle back press to return to the main view
         ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
@@ -617,70 +565,6 @@ public class GpuTableEditor {
         // Update page UI
         page.removeAllViews();
         page.addView(cardView);
-    }
-    public static class MaterialBinAdapter extends RecyclerView.Adapter<MaterialBinAdapter.ViewHolder> {
-        private final ArrayList<ParamAdapter.item> items;
-        private final Context context;
-        private final OnItemClickListener listener;
-
-        // Interface for click handling
-        public interface OnItemClickListener {
-            void onItemClick(int position);
-        }
-
-        public MaterialBinAdapter(ArrayList<ParamAdapter.item> items, Context context, OnItemClickListener listener) {
-            this.items = items;
-            this.context = context;
-            this.listener = listener;
-        }
-
-        @NonNull
-        @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            // Inflate MaterialCardView
-            MaterialCardView cardView = new MaterialCardView(context);
-            cardView.setCardElevation(6f);
-            cardView.setStrokeWidth(2);
-
-            // Dynamic colors
-            int colorPrimary = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorPrimaryContainer);
-            int strokeColor = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorPrimary);
-
-            cardView.setCardBackgroundColor(colorPrimary);
-            cardView.setStrokeColor(strokeColor);
-
-            // TextView inside the card
-            MaterialTextView textView = new MaterialTextView(context);
-            textView.setPadding(32, 24, 32, 24);
-            textView.setTextSize(16);
-            textView.setTextColor(DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorOnSurface));
-            cardView.addView(textView);
-
-            return new ViewHolder(cardView, textView);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            ParamAdapter.item item = items.get(position);
-            holder.textView.setText(item.title);
-
-            // Handle click events
-            holder.itemView.setOnClickListener(v -> listener.onItemClick(position));
-        }
-
-        @Override
-        public int getItemCount() {
-            return items.size();
-        }
-
-        static class ViewHolder extends RecyclerView.ViewHolder {
-            MaterialTextView textView;
-
-            public ViewHolder(@NonNull View itemView, MaterialTextView textView) {
-                super(itemView);
-                this.textView = textView;
-            }
-        }
     }
 
     private static View generateToolBar(AppCompatActivity activity) {
@@ -743,7 +627,7 @@ public class GpuTableEditor {
         // Set button click listener
         button.setOnClickListener(v -> {
             try {
-                writeOut();
+                writeOut(activity);
                 Toast.makeText(activity, R.string.save_success, Toast.LENGTH_SHORT).show();
             } catch (Exception e) {
                 System.out.println(e.getMessage() + e.getCause());
@@ -766,6 +650,135 @@ public class GpuTableEditor {
         wrapperLayout.addView(scrollView);  // Add scrollable buttons
 
         return wrapperLayout; // Return the wrapper layout
+    }
+
+    public static class MaterialLevelAdapter extends RecyclerView.Adapter<MaterialLevelAdapter.ViewHolder> {
+        private final ArrayList<ParamAdapter.item> items;
+        private final Context context;
+        private final OnItemClickListener listener;
+
+        public MaterialLevelAdapter(ArrayList<ParamAdapter.item> items, Context context, OnItemClickListener listener) {
+            this.items = items;
+            this.context = context;
+            this.listener = listener;
+        }
+
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            // MaterialCardView for each item
+            MaterialCardView cardView = new MaterialCardView(context);
+            cardView.setCardElevation(6f);
+            cardView.setStrokeWidth(2);
+
+            int colorPrimary = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorPrimaryContainer);
+            int strokeColor = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorPrimary);
+
+            cardView.setCardBackgroundColor(colorPrimary);
+            cardView.setStrokeColor(strokeColor);
+
+            // TextView inside the card
+            MaterialTextView textView = new MaterialTextView(context);
+            textView.setPadding(32, 24, 32, 24);
+            textView.setTextSize(16);
+            textView.setTextColor(DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorOnSurface));
+
+            cardView.addView(textView);
+
+            return new ViewHolder(cardView, textView);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            ParamAdapter.item item = items.get(position);
+            holder.textView.setText(item.title + "\n" + item.subtitle);
+
+            // Handle item clicks
+            holder.itemView.setOnClickListener(v -> listener.onItemClick(position));
+        }
+
+        @Override
+        public int getItemCount() {
+            return items.size();
+        }
+
+        public interface OnItemClickListener {
+            void onItemClick(int position);
+        }
+
+        static class ViewHolder extends RecyclerView.ViewHolder {
+            MaterialTextView textView;
+
+            public ViewHolder(@NonNull View itemView, MaterialTextView textView) {
+                super(itemView);
+                this.textView = textView;
+            }
+        }
+    }
+
+    public static class MaterialBinAdapter extends RecyclerView.Adapter<MaterialBinAdapter.ViewHolder> {
+        private final ArrayList<ParamAdapter.item> items;
+        private final Context context;
+        private final OnItemClickListener listener;
+
+        public MaterialBinAdapter(ArrayList<ParamAdapter.item> items, Context context, OnItemClickListener listener) {
+            this.items = items;
+            this.context = context;
+            this.listener = listener;
+        }
+
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            // Inflate MaterialCardView
+            MaterialCardView cardView = new MaterialCardView(context);
+            cardView.setCardElevation(6f);
+            cardView.setStrokeWidth(2);
+
+            // Dynamic colors
+            int colorPrimary = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorPrimaryContainer);
+            int strokeColor = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorPrimary);
+
+            cardView.setCardBackgroundColor(colorPrimary);
+            cardView.setStrokeColor(strokeColor);
+
+            // TextView inside the card
+            MaterialTextView textView = new MaterialTextView(context);
+            textView.setPadding(32, 24, 32, 24);
+            textView.setTextSize(16);
+            textView.setTextColor(DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorOnSurface));
+            cardView.addView(textView);
+
+            return new ViewHolder(cardView, textView);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            ParamAdapter.item item = items.get(position);
+            holder.textView.setText(item.title);
+
+            // Handle click events
+            holder.itemView.setOnClickListener(v -> listener.onItemClick(position));
+        }
+
+        @Override
+        public int getItemCount() {
+            return items.size();
+        }
+
+        // Interface for click handling
+        public interface OnItemClickListener {
+            void onItemClick(int position);
+        }
+
+        static class ViewHolder extends RecyclerView.ViewHolder {
+            MaterialTextView textView;
+
+            public ViewHolder(@NonNull View itemView, MaterialTextView textView) {
+                super(itemView);
+                this.textView = textView;
+            }
+        }
     }
 
     private static class bin {

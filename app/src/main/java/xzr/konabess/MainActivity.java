@@ -332,7 +332,7 @@ public class MainActivity extends AppCompatActivity {
          * Performs a processing step with a wait dialog.
          */
         private boolean performStep(Runnable task) {
-            showWaitDialog(2131689542);
+            showWaitDialog(R.string.wait);
             try {
                 task.run();
                 return true; // Success
