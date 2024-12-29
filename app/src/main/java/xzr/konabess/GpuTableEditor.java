@@ -1,17 +1,29 @@
 package xzr.konabess;
 
 import android.content.Context;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.text.InputType;
 import android.view.View;
-import android.widget.Button;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.color.MaterialColors;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.textview.MaterialTextView;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -29,12 +41,12 @@ import xzr.konabess.utils.DialogUtil;
 import xzr.konabess.utils.DtsHelper;
 
 public class GpuTableEditor {
+    private static final List<bin> bins = new ArrayList<>();
     private static int binPosition;
     private static int bin_positiondv;
     private static int binPositionMax;
     private static int binPositionMaxLimit;
     private static int binPositionMin;
-    private static List<bin> bins = new ArrayList<>();
     private static List<String> linesInDtsCode = new ArrayList<>();
 
     public static void init() throws IOException {
@@ -263,68 +275,6 @@ public class GpuTableEditor {
         }
     }
 
-    private static void generateALevel(AppCompatActivity activity, int last, int levelID, LinearLayout page) throws Exception {
-        ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
-            @Override
-            public void onBackPressed() {
-                try {
-                    generateLevels(activity, last, page);
-                } catch (Exception ignored) {
-                }
-            }
-        };
-
-        ListView listView = new ListView(activity);
-        ArrayList<ParamAdapter.item> items = new ArrayList<>();
-
-        items.add(new ParamAdapter.item() {{
-            title = activity.getResources().getString(R.string.back);
-            subtitle = "";
-        }});
-
-        for (String line : bins.get(last).levels.get(levelID).lines) {
-            items.add(new ParamAdapter.item() {{
-                title = KonaBessStr.convert_level_params(DtsHelper.decode_hex_line(line).name, activity);
-                subtitle = String.valueOf(DtsHelper.decode_int_line(line).value);
-            }});
-        }
-
-        listView.setOnItemClickListener((parent, view, position, id) -> {
-            try {
-                if (position == 0) {
-                    generateLevels(activity, last, page);
-                    return;
-                }
-                String raw_value = DtsHelper.decode_int_line(bins.get(last).levels.get(levelID).lines.get(position - 1)).value + "";
-                EditText editText = new EditText(activity);
-                editText.setInputType(InputType.TYPE_CLASS_NUMBER);
-                editText.setText(raw_value);
-                new AlertDialog.Builder(activity)
-                        .setTitle(activity.getResources().getString(R.string.edit) + " \"" + items.get(position).title + "\"")
-                        .setView(editText)
-                        .setPositiveButton(R.string.save, (dialog, which) -> {
-                            try {
-                                bins.get(last).levels.get(levelID).lines.set(position - 1, DtsHelper.inputToHex(editText.getText().toString()));
-                                generateALevel(activity, last, levelID, page);
-                                Toast.makeText(activity, R.string.save_success, Toast.LENGTH_SHORT).show();
-                            } catch (Exception e) {
-                                System.out.println(e.getMessage() + e.getCause());
-                                DialogUtil.showError(activity, "Save new level failed");
-                            }
-                        })
-                        .setNegativeButton(R.string.cancel, null)
-                        .create().show();
-
-            } catch (Exception e) {
-                System.out.println(e.getMessage() + e.getCause());
-                DialogUtil.showError(activity, R.string.error_occur);
-            }
-        });
-        listView.setAdapter(new ParamAdapter(items, activity));
-        page.removeAllViews();
-        page.addView(listView);
-    }
-
     private static level level_clone(level from) {
         level next = new level();
         next.lines = new ArrayList<>(from.lines);
@@ -346,6 +296,14 @@ public class GpuTableEditor {
         return level;
     }
 
+    private static long getFrequencyFromLevel(level level) throws Exception {
+        for (String line : level.lines) {
+            if (line.contains("0x")) {
+                return DtsHelper.decode_int_line(line).value;
+            }
+        }
+        throw new Exception();
+    }
     private static void generateLevels(AppCompatActivity activity, int id, LinearLayout page) throws Exception {
         bins.get(0).min.set(0, bins.get(0).levels.get(bins.get(0).levels.size() - 1));
         bins.get(0).max.set(0, bins.get(0).levels.get(0));
@@ -446,7 +404,7 @@ public class GpuTableEditor {
             if (bins.get(id).levels.size() == 1)
                 return true;
             try {
-                new AlertDialog.Builder(activity)
+                new MaterialAlertDialogBuilder(activity)
                         .setTitle(R.string.remove)
                         .setMessage(String.format(activity.getResources().getString(R.string.remove_msg), getFrequencyFromLevel(bins.get(id).levels.get(position - 2)) / 1000))
                         .setPositiveButton(R.string.yes, (dialog, which) -> {
@@ -472,16 +430,157 @@ public class GpuTableEditor {
         page.addView(listView);
     }
 
-    private static long getFrequencyFromLevel(level level) throws Exception {
-        for (String line : level.lines) {
-            if (line.contains("0x")) {
-                return DtsHelper.decode_int_line(line).value;
+    private static void generateALevel(AppCompatActivity activity, int last, int levelID, LinearLayout page) throws Exception {
+        // Handle back press to go back to the previous level
+        ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
+            @Override
+            public void onBackPressed() {
+                try {
+                    generateLevels(activity, last, page);
+                } catch (Exception ignored) {
+                }
+            }
+        };
+
+        // RecyclerView instead of ListView
+        RecyclerView recyclerView = new RecyclerView(activity);
+        recyclerView.setLayoutManager(new LinearLayoutManager(activity));
+
+        // Prepare the item list
+        ArrayList<ParamAdapter.item> items = new ArrayList<>();
+
+        // Back button item
+        items.add(new ParamAdapter.item() {{
+            title = activity.getResources().getString(R.string.back);
+            subtitle = "";
+        }});
+
+        // Add level parameters
+        for (String line : bins.get(last).levels.get(levelID).lines) {
+            items.add(new ParamAdapter.item() {{
+                title = KonaBessStr.convert_level_params(DtsHelper.decode_hex_line(line).name, activity);
+                subtitle = String.valueOf(DtsHelper.decode_int_line(line).value);
+            }});
+        }
+
+        // RecyclerView Adapter
+        recyclerView.setAdapter(new MaterialLevelAdapter(items, activity, (position) -> {
+            try {
+                if (position == 0) {
+                    // Back button functionality
+                    generateLevels(activity, last, page);
+                    return;
+                }
+
+                // Edit dialog for parameter values
+                String raw_value = String.valueOf(DtsHelper.decode_int_line(
+                        bins.get(last).levels.get(levelID).lines.get(position - 1)).value);
+
+                // Material EditText with dynamic styles
+                EditText editText = new EditText(activity);
+                editText.setInputType(InputType.TYPE_CLASS_NUMBER);
+                editText.setText(raw_value);
+                editText.setPadding(32, 32, 32, 32);
+
+                // Dynamic Material Dialog
+                new MaterialAlertDialogBuilder(activity)
+                        .setTitle(activity.getResources().getString(R.string.edit) + " \"" + items.get(position).title + "\"")
+                        .setView(editText)
+                        .setPositiveButton(R.string.save, (dialog, which) -> {
+                            try {
+                                bins.get(last).levels.get(levelID).lines.set(
+                                        position - 1, DtsHelper.inputToHex(editText.getText().toString()));
+
+                                generateALevel(activity, last, levelID, page);
+                                Toast.makeText(activity, R.string.save_success, Toast.LENGTH_SHORT).show();
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                DialogUtil.showError(activity, R.string.save_failed);
+                            }
+                        })
+                        .setNegativeButton(R.string.cancel, null)
+                        .create().show();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                DialogUtil.showError(activity, R.string.error_occur);
+            }
+        }));
+
+        // Wrap RecyclerView in MaterialCardView
+        MaterialCardView cardView = DialogUtil.createDynamicCard(activity, recyclerView);
+
+        // Update the page view
+        page.removeAllViews();
+        page.addView(cardView);
+    }
+
+    public static class MaterialLevelAdapter extends RecyclerView.Adapter<MaterialLevelAdapter.ViewHolder> {
+        private final ArrayList<ParamAdapter.item> items;
+        private final Context context;
+        private final OnItemClickListener listener;
+
+        public interface OnItemClickListener {
+            void onItemClick(int position);
+        }
+
+        public MaterialLevelAdapter(ArrayList<ParamAdapter.item> items, Context context, OnItemClickListener listener) {
+            this.items = items;
+            this.context = context;
+            this.listener = listener;
+        }
+
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            // MaterialCardView for each item
+            MaterialCardView cardView = new MaterialCardView(context);
+            cardView.setCardElevation(6f);
+            cardView.setStrokeWidth(2);
+
+            int colorPrimary = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorPrimaryContainer);
+            int strokeColor = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorPrimary);
+
+            cardView.setCardBackgroundColor(colorPrimary);
+            cardView.setStrokeColor(strokeColor);
+
+            // TextView inside the card
+            MaterialTextView textView = new MaterialTextView(context);
+            textView.setPadding(32, 24, 32, 24);
+            textView.setTextSize(16);
+            textView.setTextColor(DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorOnSurface));
+
+            cardView.addView(textView);
+
+            return new ViewHolder(cardView, textView);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            ParamAdapter.item item = items.get(position);
+            holder.textView.setText(item.title + "\n" + item.subtitle);
+
+            // Handle item clicks
+            holder.itemView.setOnClickListener(v -> listener.onItemClick(position));
+        }
+
+        @Override
+        public int getItemCount() {
+            return items.size();
+        }
+
+        static class ViewHolder extends RecyclerView.ViewHolder {
+            MaterialTextView textView;
+
+            public ViewHolder(@NonNull View itemView, MaterialTextView textView) {
+                super(itemView);
+                this.textView = textView;
             }
         }
-        throw new Exception();
     }
 
     private static void generateBins(AppCompatActivity activity, LinearLayout page) throws Exception {
+        // Handle back press to return to the main view
         ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
             @Override
             public void onBackPressed() {
@@ -489,50 +588,184 @@ public class GpuTableEditor {
             }
         };
 
-        ListView listView = new ListView(activity);
-        ArrayList<ParamAdapter.item> items = new ArrayList<>();
+        // Create RecyclerView instead of ListView
+        RecyclerView recyclerView = new RecyclerView(activity);
+        recyclerView.setLayoutManager(new LinearLayoutManager(activity)); // Vertical scrolling
 
+        // Prepare items
+        ArrayList<ParamAdapter.item> items = new ArrayList<>();
         for (int i = 0; i < bins.size(); i++) {
             ParamAdapter.item item = new ParamAdapter.item();
             item.title = KonaBessStr.convertBins(bins.get(i).id, activity);
-            item.subtitle = "";
+            item.subtitle = ""; // Can be extended for additional info
             items.add(item);
         }
 
-        listView.setAdapter(new ParamAdapter(items, activity));
-        listView.setOnItemClickListener((parent, view, position, id) -> {
+        // Adapter for RecyclerView
+        recyclerView.setAdapter(new MaterialBinAdapter(items, activity, (position) -> {
             try {
                 generateLevels(activity, position, page);
             } catch (Exception e) {
-                System.out.println(e.getMessage() + e.getCause());
+                e.printStackTrace();
                 DialogUtil.showError(activity, R.string.error_occur);
             }
-        });
+        }));
 
+        // Dynamic Material Card for wrapping RecyclerView
+        MaterialCardView cardView = DialogUtil.createDynamicCard(activity, recyclerView);
+
+        // Update page UI
         page.removeAllViews();
-        page.addView(listView);
+        page.addView(cardView);
+    }
+    public static class MaterialBinAdapter extends RecyclerView.Adapter<MaterialBinAdapter.ViewHolder> {
+        private final ArrayList<ParamAdapter.item> items;
+        private final Context context;
+        private final OnItemClickListener listener;
+
+        // Interface for click handling
+        public interface OnItemClickListener {
+            void onItemClick(int position);
+        }
+
+        public MaterialBinAdapter(ArrayList<ParamAdapter.item> items, Context context, OnItemClickListener listener) {
+            this.items = items;
+            this.context = context;
+            this.listener = listener;
+        }
+
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            // Inflate MaterialCardView
+            MaterialCardView cardView = new MaterialCardView(context);
+            cardView.setCardElevation(6f);
+            cardView.setStrokeWidth(2);
+
+            // Dynamic colors
+            int colorPrimary = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorPrimaryContainer);
+            int strokeColor = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorPrimary);
+
+            cardView.setCardBackgroundColor(colorPrimary);
+            cardView.setStrokeColor(strokeColor);
+
+            // TextView inside the card
+            MaterialTextView textView = new MaterialTextView(context);
+            textView.setPadding(32, 24, 32, 24);
+            textView.setTextSize(16);
+            textView.setTextColor(DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorOnSurface));
+            cardView.addView(textView);
+
+            return new ViewHolder(cardView, textView);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            ParamAdapter.item item = items.get(position);
+            holder.textView.setText(item.title);
+
+            // Handle click events
+            holder.itemView.setOnClickListener(v -> listener.onItemClick(position));
+        }
+
+        @Override
+        public int getItemCount() {
+            return items.size();
+        }
+
+        static class ViewHolder extends RecyclerView.ViewHolder {
+            MaterialTextView textView;
+
+            public ViewHolder(@NonNull View itemView, MaterialTextView textView) {
+                super(itemView);
+                this.textView = textView;
+            }
+        }
     }
 
     private static View generateToolBar(AppCompatActivity activity) {
-        LinearLayout toolbar = new LinearLayout(activity);
-        HorizontalScrollView horizontalScrollView = new HorizontalScrollView(activity);
-        horizontalScrollView.addView(toolbar);
+        // Create a MaterialToolbar
+        MaterialToolbar toolbar = new MaterialToolbar(activity);
 
-        {
-            Button button = new Button(activity);
-            button.setText(R.string.save_freq_table);
-            toolbar.addView(button);
-            button.setOnClickListener(v -> {
-                try {
-                    writeOut();
-                    Toast.makeText(activity, R.string.save_success, Toast.LENGTH_SHORT).show();
-                } catch (Exception e) {
-                    System.out.println(e.getMessage() + e.getCause());
-                    DialogUtil.showError(activity, R.string.save_failed);
-                }
-            });
-        }
-        return horizontalScrollView;
+        // Set toolbar title
+        toolbar.setTitle(R.string.save_freq_table);
+        toolbar.setTitleTextColor(MaterialColors.getColor(
+                activity,
+                com.google.android.material.R.attr.colorOnPrimary, // Dynamic color
+                Color.WHITE // Fallback color
+        ));
+
+        // Dynamic background color for toolbar
+        int toolbarColor = DialogUtil.getDynamicColor(activity, com.google.android.material.R.attr.colorPrimary);
+        toolbar.setBackgroundColor(toolbarColor); // Matches notification primary color
+
+        // Set toolbar layout parameters
+        toolbar.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        toolbar.setPadding(16, 16, 16, 16); // Padding inside toolbar
+
+        // Add a Horizontal ScrollView for buttons
+        HorizontalScrollView scrollView = new HorizontalScrollView(activity);
+        scrollView.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        // LinearLayout inside ScrollView to hold buttons
+        LinearLayout buttonContainer = new LinearLayout(activity);
+        buttonContainer.setOrientation(LinearLayout.HORIZONTAL);
+        buttonContainer.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        scrollView.addView(buttonContainer); // Add button container to scroll view
+
+        // Add a button inside the container
+        MaterialButton button = new MaterialButton(activity, null,
+                com.google.android.material.R.attr.materialButtonOutlinedStyle);
+
+        button.setText(R.string.save_freq_table);
+        button.setPadding(16, 8, 16, 8); // Padding inside button
+        button.setCornerRadius(16); // Rounded corners
+        button.setStrokeWidth(2); // Border width
+
+        // Dynamic button colors
+        int buttonBackground = DialogUtil.getDynamicColor(activity, com.google.android.material.R.attr.colorPrimaryContainer);
+        int buttonTextColor = DialogUtil.getDynamicColor(activity, com.google.android.material.R.attr.colorOnPrimaryContainer);
+        int buttonStrokeColor = DialogUtil.getDynamicColor(activity, com.google.android.material.R.attr.colorPrimary);
+
+        button.setBackgroundTintList(ColorStateList.valueOf(buttonBackground));
+        button.setTextColor(buttonTextColor);
+        button.setStrokeColor(ColorStateList.valueOf(buttonStrokeColor));
+
+        // Set button click listener
+        button.setOnClickListener(v -> {
+            try {
+                writeOut();
+                Toast.makeText(activity, R.string.save_success, Toast.LENGTH_SHORT).show();
+            } catch (Exception e) {
+                System.out.println(e.getMessage() + e.getCause());
+                DialogUtil.showError(activity, R.string.save_failed);
+            }
+        });
+
+        // Add button to container
+        buttonContainer.addView(button);
+
+        // Create a wrapper layout for both toolbar and scroll view
+        LinearLayout wrapperLayout = new LinearLayout(activity);
+        wrapperLayout.setOrientation(LinearLayout.VERTICAL);
+        wrapperLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        wrapperLayout.addView(toolbar);     // Add toolbar first
+        wrapperLayout.addView(scrollView);  // Add scrollable buttons
+
+        return wrapperLayout; // Return the wrapper layout
     }
 
     private static class bin {
