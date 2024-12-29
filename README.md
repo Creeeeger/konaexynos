@@ -67,8 +67,6 @@
 
 ## Todo
 - Add material you to the level selector
-- check if reworked Core works
 - Optimize gpu editor
-- Fix the bug that occasionally saves files improperly.
 
 Feel free to contribute :)
