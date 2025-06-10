@@ -389,27 +389,36 @@ public class GpuTableEditor {
     }
 
     /**
-     * Writes the modified DTS code back to the original file, inserting GPU tables at recorded positions.
+     * Writes the modified DTS content back to the original DTS file.
+     * Inserts the regenerated GPU tables at their recorded positions.
      *
-     * @param activity Activity for context when generating tables.
-     * @throws IOException If writing to the file fails.
+     * @param activity Activity context used for generating table lines.
+     * @throws IOException If writing to the DTS file fails.
      */
     public static void writeOut(AppCompatActivity activity) throws IOException {
+        // Resolve the path to the DTS file stored in KonaBessCore.dts_path
         Path filePath = Paths.get(KonaBessCore.dts_path);
-        // Start from the original lines with removals applied
+
+        // Start with the base DTS lines that had the original GPU table entries removed
         ArrayList<String> newDts = new ArrayList<>(linesInDtsCode);
-        // Insert each generated table at its saved index
+
+        // Insert the reconstructed full gpu_dvfs_table block at its original index
         newDts.addAll(binPosition, genTable(1, activity));
+        // Insert the gpu_dvfs_table_size line at its original index
         newDts.addAll(bin_positiondv, genTable(0, activity));
+        // Insert the gpu_min_clock line at its original index
         newDts.addAll(binPositionMin, genTable(4, activity));
+        // Insert the gpu_max_clock_limit line at its original index
         newDts.addAll(binPositionMaxLimit, genTable(3, activity));
+        // Insert the gpu_max_clock line at its original index
         newDts.addAll(binPositionMax, genTable(2, activity));
 
-        // Write out the combined lines in a try-with-resources block
+        // Open the file for writing, creating or truncating as needed
         try (BufferedWriter writer = Files.newBufferedWriter(
                 filePath,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING)) {
+            // Write each line followed by a newline to preserve DTS formatting
             for (String line : newDts) {
                 writer.write(line);
                 writer.newLine();
@@ -510,22 +519,30 @@ public class GpuTableEditor {
 
         // Prepare items for the adapter: Back, New Item, existing levels, New Item
         ArrayList<ParamAdapter.item> items = new ArrayList<>();
+        // Add the 'Back' button
         items.add(new ParamAdapter.item() {{
             title = activity.getResources().getString(R.string.back);
             subtitle = "";
         }});
+
+        // Add the 'New Item' button
         items.add(new ParamAdapter.item() {{
             title = activity.getResources().getString(R.string.new_item);
             subtitle = activity.getResources().getString(R.string.new_desc);
         }});
+
+        // Add frequency levels
         for (level level : bins.get(id).levels) {
             long freq = getFrequencyFromLevel(level);
             if (freq == 0) continue;  // Skip zero entries
+
             ParamAdapter.item item = new ParamAdapter.item();
             item.title = freq / 1000 + "MHz";
             item.subtitle = "";
             items.add(item);
         }
+
+        // Add another 'New Item' at the end
         items.add(new ParamAdapter.item() {{
             title = activity.getResources().getString(R.string.new_item);
             subtitle = activity.getResources().getString(R.string.new_desc);
@@ -564,32 +581,49 @@ public class GpuTableEditor {
         });
 
         // Attach touch listener to handle both taps and long-presses
+        // Attach a touch listener to intercept both tap and long-press gestures on RecyclerView items
         recyclerView.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
             @Override
             public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+                // Determine which child view (item) is under the touch coordinates
                 View child = rv.findChildViewUnder(e.getX(), e.getY());
+                // Only proceed if a child was touched and the gestureDetector recognizes the event
                 if (child != null && gestureDetector.onTouchEvent(e)) {
+                    // Get the adapter position of the touched item
                     int position = rv.getChildAdapterPosition(child);
+                    // Only react when the user lifts their finger (ACTION_UP)
                     if (e.getAction() == MotionEvent.ACTION_UP) {
+                        // Handle special positions before normal level selection:
+                        //   - Last 'New Item' entry for adding levels
+                        //   - Position 0 for 'Back' to previous screen
+                        //   - Position 1 for cloning first level
                         if (posIsSizeMinOne(activity, id, page, position, items)) return true;
                         if (posIs0(activity, page, position)) return true;
                         if (posIs1(activity, id, page, position)) return true;
+                        // Adjust index to account for header items (Back + New Item)
                         position -= 2;
                         try {
+                            // Generate the UI for editing the selected level
                             generateALevel(activity, id, position, page);
                         } catch (Exception ex) {
+                            // Show an error dialog if something goes wrong during level generation
                             DialogUtil.showError(activity, "Add a new level error");
                         }
                     }
                 }
+                // Return false to allow the touch event to continue to other listeners if not consumed
                 return false;
             }
 
             @Override
-            public void onTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) { /* No-op */ }
+            public void onTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+                // No action needed here; touch events are handled in onInterceptTouchEvent
+            }
 
             @Override
-            public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) { /* No-op */ }
+            public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {
+                // No-op: we do not need to handle requests to disallow intercept
+            }
         });
 
         // Wrap the RecyclerView in a dynamic MaterialCardView
@@ -601,43 +635,64 @@ public class GpuTableEditor {
     }
 
     /**
-     * Prompts the user to confirm and remove a GPU frequency level.
+     * Prompts the user with a confirmation dialog to remove a selected GPU frequency level.
+     * <p>
+     * This method safeguards against removing the placeholder "New Item" at the end of the list
+     * and ensures at least one frequency level remains. On user confirmation, it updates the
+     * underlying data model and refreshes the UI.
+     * </p>
      *
-     * @param activity Calling activity for context and dialog UI.
-     * @param id       Index of the bin from which to remove.
-     * @param page     Layout container to regenerate levels view.
-     * @param position Adapter position of the item tapped.
-     * @param items    List of displayed items in the RecyclerView.
+     * @param activity Calling activity, used for dialog theming and context.
+     * @param id       Index of the bin from which to remove a level.
+     * @param page     Container layout in which the levels UI will be regenerated.
+     * @param position Adapter position of the tapped item in the RecyclerView.
+     * @param items    List of displayed items (including "Back" and "New Item" entries).
      */
-    private static void removeFrequency(AppCompatActivity activity, int id, LinearLayout page, int position, ArrayList<ParamAdapter.item> items) {
-        // Do not allow removal of the last 'New Item' entry
-        if (position == items.size() - 1)
+    private static void removeFrequency(AppCompatActivity activity,
+                                        int id,
+                                        LinearLayout page,
+                                        int position,
+                                        ArrayList<ParamAdapter.item> items) {
+        // If the tapped item is the last "New Item" placeholder, do nothing.
+        if (position == items.size() - 1) {
             return;
-        // Prevent removing the only remaining level
-        if (bins.get(id).levels.size() == 1)
+        }
+        // If there is only one level left, prevent its removal to avoid an empty table.
+        if (bins.get(id).levels.size() == 1) {
             return;
+        }
         try {
-            // Show confirmation dialog with frequency value in MHz
+            // Build and display a confirmation dialog showing the frequency (in MHz) to remove.
+            long freqMHz = getFrequencyFromLevel(bins.get(id).levels.get(position - 2)) / 1000;
+            String message = String.format(
+                    activity.getResources().getString(R.string.remove_msg),
+                    freqMHz
+            );
+
             new MaterialAlertDialogBuilder(activity)
-                    .setTitle(R.string.remove)
-                    .setMessage(String.format(
-                            activity.getResources().getString(R.string.remove_msg),
-                            getFrequencyFromLevel(bins.get(id).levels.get(position - 2)) / 1000))
-                    .setPositiveButton(R.string.yes, (dialog, which) -> {
-                        // On confirmation, remove the selected level and its metadata
-                        bins.get(id).levels.remove(position - 2);
-                        bins.get(id).meta.remove(position - 2);
-                        try {
-                            // Regenerate the levels UI after removal
-                            generateLevels(activity, id, page);
-                        } catch (Exception e) {
-                            DialogUtil.showError(activity, "Remove a frequency error");
-                        }
-                    })
-                    .setNegativeButton(R.string.no, null)
-                    .create().show();
+                    .setTitle(R.string.remove)           // Dialog title (e.g., "Remove")
+                    .setMessage(message)                // Dialog body with the frequency value
+                    .setPositiveButton(R.string.yes,    // "Yes" button confirms removal
+                            (dialog, which) -> {
+                                // Remove the selected frequency level and its metadata entry
+                                bins.get(id).levels.remove(position - 2);
+                                bins.get(id).meta.remove(position - 2);
+                                try {
+                                    // Regenerate the levels UI to reflect the removal
+                                    generateLevels(activity, id, page);
+                                } catch (Exception e) {
+                                    // Show an error if UI regeneration fails
+                                    DialogUtil.showError(activity, "Remove a frequency error");
+                                }
+                            }
+                    )
+                    .setNegativeButton(R.string.no,     // "No" button cancels removal
+                            null
+                    )
+                    .create()
+                    .show();
         } catch (Exception e) {
-            // Log any unexpected errors
+            // If any unexpected error occurs (e.g., parsing frequency), log it to console.
             System.out.println(e.getMessage());
         }
     }
@@ -725,23 +780,28 @@ public class GpuTableEditor {
     }
 
     /**
-     * Handles the 'Back' button tap at position 0 to return to the bin overview.
+     * Handles taps on the first list item (position 0), which serves as a "Back" button
+     * to return from the level-edit screen back to the bin overview.
      *
-     * @param activity Calling activity context.
-     * @param page     Layout to regenerate.
-     * @param position Adapter position tapped.
-     * @return true if the tap was handled here; false otherwise.
+     * @param activity Calling activity, used to invoke UI updates.
+     * @param page     The layout container where the bins list will be regenerated.
+     * @param position The adapter position of the tapped item.
+     * @return true if this method consumed the tap (i.e., position was 0); false otherwise.
      */
     private static boolean posIs0(AppCompatActivity activity, LinearLayout page, int position) {
+        // Only handle taps on the very first item (the "Back" entry)
         if (position == 0) {
             try {
-                // Regenerate the bin overview UI
+                // Rebuild and display the top-level bin selection UI
                 generateBins(activity, page);
             } catch (Exception e) {
+                // Wrap any unexpected exception in a runtime exception to avoid silent failures
                 throw new RuntimeException(e);
             }
+            // Indicate that this tap was handled here and should not be processed further
             return true;
         }
+        // For any other position, do nothing here and allow other handlers to process it
         return false;
     }
 
@@ -899,79 +959,99 @@ public class GpuTableEditor {
      * @return A View containing the toolbar and horizontal button scroll.
      */
     private static View generateToolBar(AppCompatActivity activity) {
-        // Create and configure a MaterialToolbar
+        // Create and configure the top app bar using MaterialToolbar
         MaterialToolbar toolbar = new MaterialToolbar(activity);
-        toolbar.setTitle(R.string.save_freq_table);
+        toolbar.setTitle(R.string.save_freq_table);  // Set the title text from resources
         toolbar.setTitleTextColor(MaterialColors.getColor(
                 activity,
-                com.google.android.material.R.attr.colorOnPrimary,
-                Color.WHITE
+                com.google.android.material.R.attr.colorOnPrimary, // Dynamic text color attribute
+                Color.WHITE                                       // Fallback color
         ));
-        // Set dynamic background based on theme primary color
-        int toolbarColor = DialogUtil.getDynamicColor(activity, com.google.android.material.R.attr.colorPrimary);
+
+        // Apply a dynamic background color based on the current Material theme primary color
+        int toolbarColor = DialogUtil.getDynamicColor(
+                activity,
+                com.google.android.material.R.attr.colorPrimary
+        );
         toolbar.setBackgroundColor(toolbarColor);
+
+        // Define layout parameters for full-width and wrap-content height
         toolbar.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
-        toolbar.setPadding(16, 16, 16, 16);
+        toolbar.setPadding(16, 16, 16, 16);  // Add padding inside the toolbar
 
-        // Horizontal ScrollView to hold action buttons
+        // Create a HorizontalScrollView to host action buttons without crowding the toolbar
         HorizontalScrollView scrollView = new HorizontalScrollView(activity);
         scrollView.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
 
-        // Container for buttons inside the scroll view
+        // Inside the scroll view, use a horizontal LinearLayout to arrange buttons side by side
         LinearLayout buttonContainer = new LinearLayout(activity);
         buttonContainer.setOrientation(LinearLayout.HORIZONTAL);
         buttonContainer.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
-        scrollView.addView(buttonContainer);
+        scrollView.addView(buttonContainer); // Add the button container to the scroll view
 
-        // Create an outlined MaterialButton for "Save"
-        MaterialButton button = new MaterialButton(activity, null,
-                com.google.android.material.R.attr.materialButtonOutlinedStyle);
-        button.setText(R.string.save_freq_table);
-        button.setPadding(16, 8, 16, 8);
-        button.setCornerRadius(16);
-        button.setStrokeWidth(2);
+        // Create an outlined MaterialButton for the "Save" action
+        MaterialButton button = new MaterialButton(
+                activity,
+                null,
+                com.google.android.material.R.attr.materialButtonOutlinedStyle
+        );
+        button.setText(R.string.save_freq_table);  // Button label text
+        button.setPadding(16, 8, 16, 8);          // Internal padding for touch comfort
+        button.setCornerRadius(16);               // Rounded corners for a polished look
+        button.setStrokeWidth(2);                 // Outline border width
 
-        // Apply dynamic colors for button background, text, and border
-        int buttonBackground = DialogUtil.getDynamicColor(activity, com.google.android.material.R.attr.colorPrimaryContainer);
-        int buttonTextColor = DialogUtil.getDynamicColor(activity, com.google.android.material.R.attr.colorOnPrimaryContainer);
-        int buttonStrokeColor = DialogUtil.getDynamicColor(activity, com.google.android.material.R.attr.colorPrimary);
-        button.setBackgroundTintList(ColorStateList.valueOf(buttonBackground));
-        button.setTextColor(buttonTextColor);
-        button.setStrokeColor(ColorStateList.valueOf(buttonStrokeColor));
+        // Fetch dynamic colors for the button to match the Material color scheme
+        int buttonBackground = DialogUtil.getDynamicColor(
+                activity,
+                com.google.android.material.R.attr.colorPrimaryContainer
+        );
+        int buttonTextColor = DialogUtil.getDynamicColor(
+                activity,
+                com.google.android.material.R.attr.colorOnPrimaryContainer
+        );
+        int buttonStrokeColor = DialogUtil.getDynamicColor(
+                activity,
+                com.google.android.material.R.attr.colorPrimary
+        );
+        button.setBackgroundTintList(ColorStateList.valueOf(buttonBackground)); // Fill color
+        button.setTextColor(buttonTextColor);                                   // Text color
+        button.setStrokeColor(ColorStateList.valueOf(buttonStrokeColor));       // Border color
 
-        // Set the save action to write out the DTS and show a toast
+        // Set up the click listener: attempt to save the DTS file and notify the user
         button.setOnClickListener(v -> {
             try {
-                writeOut(activity);
+                writeOut(activity);  // Write changes back to the DTS file
                 Toast.makeText(activity, R.string.save_success, Toast.LENGTH_SHORT).show();
             } catch (Exception e) {
+                // Log the error and show an error dialog if saving fails
                 System.out.println(e.getMessage() + e.getCause());
                 DialogUtil.showError(activity, R.string.save_failed);
             }
         });
 
-        // Add the button to the horizontal container
+        // Add the configured save button into the horizontal button container
         buttonContainer.addView(button);
 
-        // Wrapper layout to stack toolbar above buttons
+        // Wrap the toolbar and scrollable button row into a vertical LinearLayout
         LinearLayout wrapperLayout = new LinearLayout(activity);
         wrapperLayout.setOrientation(LinearLayout.VERTICAL);
         wrapperLayout.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
-        wrapperLayout.addView(toolbar);
-        wrapperLayout.addView(scrollView);
+        wrapperLayout.addView(toolbar);     // Place the toolbar at the top
+        wrapperLayout.addView(scrollView);  // Place the buttons directly below
 
+        // Return the assembled view hierarchy
         return wrapperLayout;
     }
 
@@ -1035,17 +1115,29 @@ public class GpuTableEditor {
 
         /**
          * ViewHolder holds references to the card view and text view for reuse.
+         * <p>
+         * This inner class caches the child views for a single RecyclerView item,
+         * avoiding repeated findViewById calls and improving scroll performance.
+         * </p>
          */
         static class ViewHolder extends RecyclerView.ViewHolder {
+            // Reference to the MaterialTextView displaying the item's title and subtitle
             MaterialTextView textView;
 
+            /**
+             * Constructor for the ViewHolder.
+             *
+             * @param itemView The root view of the RecyclerView item (a MaterialCardView).
+             * @param textView The MaterialTextView inside the card used to show text.
+             */
             public ViewHolder(@NonNull View itemView, MaterialTextView textView) {
                 super(itemView);
+                // Store the passed-in TextView for quick access in onBindViewHolder
                 this.textView = textView;
             }
         }
     }
-    
+
     /**
      * RecyclerView.Adapter implementation for displaying GPU table bins in a Material-styled list.
      */
