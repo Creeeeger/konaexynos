@@ -1,21 +1,28 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
+
 buildscript {
+    // Repositories for buildscript dependencies (plugins, tools, etc.)
     repositories {
-        google()
-        mavenCentral()
+        google()        // Google's Maven repository (for Android tools)
+        mavenCentral()  // Maven Central repository (for other dependencies)
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.7.3'
+        // Android Gradle Plugin, version 8.1.0 (check version matches your project's needs)
+        classpath 'com.android.tools.build:gradle:8.10.1'
+        // NOTE: Add more classpath dependencies here if you use other Gradle plugins.
     }
 }
 
+// Configuration for all sub-projects/modules in this project.
 allprojects {
     repositories {
-        google()
-        mavenCentral()
+        google()        // Use Google's Maven repo for all modules
+        mavenCentral()  // Use Maven Central for all modules
     }
 }
 
+// Defines a 'clean' task to delete the build directory.
+// Usage: ./gradlew clean
 tasks.register('clean', Delete) {
     delete rootProject.buildDir
 }

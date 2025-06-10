@@ -1,48 +1,61 @@
 # KonaExynos
 
-### Support list
+## Supported Devices
 
-* Exynos 9820
-* Exynos 9825
-* For a new device study the code yourself and add it
+- **Exynos 9820**
+- **Exynos 9825**
+- For new devices: _study the code yourself and add support_.
 
-### What is this?
+---
 
-- A simple app that can custom GPU frequency tables without recompiling the kernel
+## What is this?
 
-### How it works?
+A simple Android app that lets you **edit custom GPU frequency tables without recompiling the kernel
+**.
 
-- By unpacking the DTB image, converting the dtb file to a dts file and editing the table, and
-  finally repacking and flashing it.
+---
 
-### How to use?
+## How does it work?
 
-- Install app on a exynos 9820/25 platform
-- give su rights
-- press edit gpu freq table
-- select your chipset
-- edit the table
-- press save gpu freq table
-- press repack and flash image
-- reboot and see if it works
+1. **Unpacks** the DTB image from your device.
+2. **Converts** the `.dtb` file to a readable `.dts` file.
+3. **Lets you edit** the frequency table via the app UI.
+4. **Re-packs** and **flashes** the modified image back to your device.
 
-### How much improvement can I get?
+---
 
-- some since you can under-clock and add new frequencies
+## How to Use
 
-### Prebuilt binaries
+1. **Install** the app on an Exynos 9820/9825 device.
+2. **Grant root (su) permissions.**
+3. Press **Edit GPU Freq Table**.
+4. **Select your chipset.**
+5. **Edit the table** as needed.
+6. Press **Save GPU Freq Table**.
+7. Press **Repack and Flash Image**.
+8. **Reboot** and test if it works.
 
-- [dtc](https://github.com/xzr467706992/dtc-aosp/tree/standalone)
-- [extract_dtb](https://github.com/PabloCastellano/extract-dtb)
-- repack_dtb - Self crafted binary for attaching both dtb parts together and converting them to an
-  image
+---
 
-### What doesn't
+## What kind of improvement can I expect?
 
-- idk smasnungs kernel which prevents it from working (mostly)
-- in the logs I found a pre defined table which freqs possible are
-- i use a stock kernel but the overclock frequencies which i could achieve with a custom kernel were
-  list 1:1 in the logs:
+- You can under-clock for battery savings, or add new frequency steps.
+- Don’t expect miracles—hardware and firmware limits still apply.
+
+---
+
+## Prebuilt Binaries
+
+- [`dtc`](https://github.com/xzr467706992/dtc-aosp/tree/standalone)
+- [`extract_dtb`](https://github.com/PabloCastellano/extract-dtb)
+- `repack_dtb`: Self-crafted binary for merging DTB parts and creating a bootable image.
+
+---
+
+## Limitations & Notes
+
+- **Some Samsung kernels may block this mod**.
+- Kernel logs reveal a **predefined table**—frequencies that actually work:
 
 ```
 6,908,984754,-;dvfs_type : dvfs_g3d - id : a
@@ -63,19 +76,25 @@
 6,923,984892,-;  lv : [ 100000], volt = 537500 uV
 ```
 
-- basically these frequencies work and no other ones
-- these frequencies are in the SRAM, so what i do is to create a custom kernel with a custom table,
-  what i did and, but the voltages are linked to the frequencies even if you rewrite them
-- so we need to trick out this
-  mechanism --> [The commit](https://github.com/Creeeeger/Galaxy_S10_5G_Kernel/commit/da293bfb95effcfcba1900a4a3fb15a95b471ef9#diff-830b66ed3916a0a50cb5b270b4a2b5d1ace91f93ccac5534b69c041558aba923)
+- **Only these frequencies are supported** (enforced in SRAM).
+- If you create a custom table, the voltages are still hard-linked to these frequency steps.
+- _Tricking_ this system may require advanced kernel
+  work—see [this commit](https://github.com/Creeeeger/Galaxy_S10_5G_Kernel/commit/da293bfb95effcfcba1900a4a3fb15a95b471ef9#diff-830b66ed3916a0a50cb5b270b4a2b5d1ace91f93ccac5534b69c041558aba923).
 
-### Issues
+---
 
-- If there are any issues or whatever open an issue
-- If you want to contribute open pull request
+## Issues & Contributions
 
-## Todo
+- Found a bug? **[Open an issue](../../issues)**
+- Want to help? **[Send a pull request](../../pulls)**
+- Contributions welcome!
 
-- Maybe sort the frequencies automatically when adding
+---
 
-Feel free to contribute :)
+## TODO
+
+- [ ] Automatically sort frequencies when adding new ones.
+
+---
+
+_You’re welcome to fork, hack, and contribute!_
