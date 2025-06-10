@@ -25,17 +25,16 @@ public class DtsHelper {
     public static int decode_stringed_int(String input) throws IllegalArgumentException {
         // Strip wrapping quotes, semicolons, and escaped double-quotes
         input = input.replaceAll("\"|;|\\\\\"", "")
-                // Process common backslash escapes
-                .replace("\\a", "\u0007")  // Bell
-                .replace("\\b", "\b")     // Backspace
-                .replace("\\f", "\f")     // Formfeed
-                .replace("\\n", "\n")     // Newline
-                .replace("\\r", "\r")     // Carriage return
-                .replace("\\t", "\t")     // Horizontal tab
-                .replace("\\v", "\u000B")  // Vertical tab
-                .replace("\\\\", "\\")  // Literal backslash
-                .replace("\\'", "'")       // Literal single-quote
-                .trim();                         // Clean up whitespace
+                .replace("\\a", "\7")
+                .replace("\\b", "\b")
+                .replace("\\f", "\f")
+                .replace("\\n", "\n")
+                .replace("\\r", "\r")
+                .replace("\\t", "\t")
+                .replace("\\v", "\11")
+                .replace("\\\\", "\\")
+                .replace("\\'", "'")
+                .trim();
 
         if (input.length() != 3) {
             throw new IllegalArgumentException(
