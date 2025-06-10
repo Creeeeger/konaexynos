@@ -19,43 +19,86 @@ import com.google.android.material.textview.MaterialTextView;
 
 import xzr.konabess.R;
 
+/**
+ * Utility class for creating and displaying various types of Material You styled dialogs.
+ */
 public class DialogUtil {
-    // Simple Error Dialog
+    // --- BASIC ERROR DIALOGS ---
+
+    /**
+     * Show a simple error dialog with a given message (String version).
+     *
+     * @param activity Current AppCompatActivity context.
+     * @param message  Error message to display.
+     */
     public static void showError(AppCompatActivity activity, String message) {
         createAlertDialog(activity, activity.getString(R.string.error), message).show();
     }
 
+    /**
+     * Show a simple error dialog with a message from string resources (int version).
+     *
+     * @param activity  Current AppCompatActivity context.
+     * @param messageId Resource ID for the error message.
+     */
     public static void showError(AppCompatActivity activity, int messageId) {
         showError(activity, activity.getString(messageId));
     }
 
-    // Detailed Error Dialog
+    // --- DETAILED ERROR DIALOGS (e.g. for stack traces, logs, etc.) ---
+
+    /**
+     * Show an error dialog with a custom title and a detailed message inside a styled card.
+     *
+     * @param activity Current AppCompatActivity context.
+     * @param title    Error title (main message).
+     * @param detail   Detailed error description (e.g. stack trace, log output).
+     */
     public static void showDetailedError(AppCompatActivity activity, String title, String detail) {
+        // Add "long press to copy" hint.
         String message = title + "\n" + activity.getString(R.string.long_press_to_copy);
 
-        // Dynamic Material You Card
+        // Wrap the detail in a scrollable MaterialCardView.
         MaterialCardView cardView = createDynamicCard(activity, detail);
 
         createAlertDialog(activity, activity.getString(R.string.error), message, cardView).show();
     }
 
+    /**
+     * Overload: Show detailed error with title from string resources.
+     */
     public static void showDetailedError(AppCompatActivity activity, int titleId, String detail) {
         showDetailedError(activity, activity.getString(titleId), detail);
     }
 
-    // Wait Dialog with ProgressBar
+    // --- WAIT DIALOGS (loading/progress indicators) ---
+
+    /**
+     * Show a wait dialog (progress bar + message) with message from string resources.
+     *
+     * @param context   Context for dialog.
+     * @param messageId Resource ID for message.
+     * @return Configured AlertDialog (caller should show() it).
+     */
     public static AlertDialog getWaitDialog(Context context, int messageId) {
         return getWaitDialog(context, context.getString(messageId));
     }
 
+    /**
+     * Show a wait dialog (progress bar + message) with a string message.
+     *
+     * @param context Context for dialog.
+     * @param message Message string.
+     * @return Configured AlertDialog (caller should show() it).
+     */
     public static AlertDialog getWaitDialog(Context context, String message) {
-        // ProgressBar styled with Material You dynamic color
+        // Create Material You styled ProgressBar.
         ProgressBar progressBar = createDynamicProgressBar(context);
 
-        // Styled TextView
+        // Styled message TextView.
         MaterialTextView textView = createDynamicTextView(context, message);
 
-        // Layout with padding and gravity
+        // Vertical linear layout for spacing and centering.
         LinearLayout layout = new LinearLayout(context);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -63,21 +106,32 @@ public class DialogUtil {
         layout.addView(progressBar);
         layout.addView(textView);
 
-        // Wrap in dynamic Material Card
+        // Wrap content in a MaterialCardView for Material You look.
         MaterialCardView cardView = createDynamicCard(context, layout);
 
         return createAlertDialog(context, null, null, cardView, false);
     }
 
-    // Create a basic styled alert dialog with dynamic colors
+    // --- ALERT DIALOG CREATION HELPERS ---
+
+    /**
+     * Basic Material You AlertDialog with title & message.
+     */
     private static AlertDialog createAlertDialog(Context context, String title, String message) {
         return createAlertDialog(context, title, message, null, true);
     }
 
+    /**
+     * Material You AlertDialog with custom view.
+     */
     private static AlertDialog createAlertDialog(Context context, String title, String message, View view) {
         return createAlertDialog(context, title, message, view, true);
     }
 
+    /**
+     * Generalized builder: Material You AlertDialog with title, message, custom view, and cancelable flag.
+     * Always adds a positive "OK" button.
+     */
     private static AlertDialog createAlertDialog(Context context, String title, String message, View view, boolean cancelable) {
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(context)
                 .setCancelable(cancelable)
@@ -90,14 +144,22 @@ public class DialogUtil {
         return builder.create();
     }
 
-    // Dynamic Material CardView
+    // --- MATERIAL YOU COMPONENT HELPERS ---
+
+    /**
+     * Create a MaterialCardView with Material You colors and one child view.
+     *
+     * @param context Context for styling.
+     * @param child   Child view to place inside the card.
+     * @return Configured MaterialCardView.
+     */
     @NonNull
     public static MaterialCardView createDynamicCard(Context context, View child) {
         MaterialCardView cardView = new MaterialCardView(context);
-        cardView.setCardElevation(6f); // Subtle shadow effect
+        cardView.setCardElevation(6f); // Subtle Material shadow
         cardView.setStrokeWidth(2);
 
-        // Use Material You dynamic color
+        // Fetch dynamic colors from theme (Material You)
         int colorPrimary = getDynamicColor(context, com.google.android.material.R.attr.colorPrimaryContainer);
         int strokeColor = getDynamicColor(context, com.google.android.material.R.attr.colorPrimary);
 
@@ -107,7 +169,13 @@ public class DialogUtil {
         return cardView;
     }
 
-    // Dynamic Card with String Content
+    /**
+     * Create a MaterialCardView containing scrollable text content.
+     *
+     * @param context Context for styling.
+     * @param content String to display inside the card.
+     * @return Configured MaterialCardView with scrollable content.
+     */
     @NonNull
     private static MaterialCardView createDynamicCard(Context context, String content) {
         ScrollView scrollView = new ScrollView(context);
@@ -117,11 +185,17 @@ public class DialogUtil {
         return createDynamicCard(context, scrollView);
     }
 
-    // Dynamic Material TextView
+    /**
+     * Create a MaterialTextView with selectable text and Material You text color.
+     *
+     * @param context Context for styling.
+     * @param text    Text to display.
+     * @return Configured MaterialTextView.
+     */
     @NonNull
     private static MaterialTextView createDynamicTextView(Context context, String text) {
         MaterialTextView textView = new MaterialTextView(context);
-        textView.setTextIsSelectable(true);
+        textView.setTextIsSelectable(true); // Allow user to copy text
         textView.setText(text);
 
         // Apply Material You dynamic text color
@@ -131,7 +205,12 @@ public class DialogUtil {
         return textView;
     }
 
-    // Dynamic ProgressBar
+    /**
+     * Create an indeterminate ProgressBar with Material You dynamic color.
+     *
+     * @param context Context for styling.
+     * @return Configured ProgressBar.
+     */
     @NonNull
     private static ProgressBar createDynamicProgressBar(Context context) {
         ProgressBar progressBar = new ProgressBar(context);
@@ -142,13 +221,19 @@ public class DialogUtil {
         params.gravity = Gravity.CENTER;
         progressBar.setLayoutParams(params);
 
-        // Tint progress bar dynamically
+        // Set indeterminate tint using dynamic color
         int tintColor = getDynamicColor(context, com.google.android.material.R.attr.colorPrimary);
         progressBar.setIndeterminateTintList(ColorStateList.valueOf(tintColor));
         return progressBar;
     }
 
-    // Fetch Material You Dynamic Color
+    /**
+     * Utility: Fetch a color value from current theme attributes (Material You support).
+     *
+     * @param context Context for resolving theme.
+     * @param attr    Attribute ID to resolve (e.g. colorPrimary, colorOnSurface).
+     * @return Color int value.
+     */
     public static int getDynamicColor(Context context, int attr) {
         TypedValue typedValue = new TypedValue();
         context.getTheme().resolveAttribute(attr, typedValue, true);

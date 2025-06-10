@@ -11,7 +11,6 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -42,79 +41,95 @@ import xzr.konabess.utils.DialogUtil;
 import xzr.konabess.utils.DtsHelper;
 
 public class GpuTableEditor {
+    // List holding parsed bin data structures for GPU DVFS tables
     private static final List<bin> bins = new ArrayList<>();
+    // Various positions in the DTS file where different GPU table entries were found
     private static int binPosition;
     private static int bin_positiondv;
     private static int binPositionMax;
     private static int binPositionMaxLimit;
     private static int binPositionMin;
+    // Lines of the DTS source, loaded for editing
     private static List<String> linesInDtsCode = new ArrayList<>();
 
+    /**
+     * Initializes the editor state by clearing previous data and loading the DTS file into memory.
+     *
+     * @throws IOException If reading the DTS file fails.
+     */
     public static void init() throws IOException {
-        // Initialize collections and variables
+        // Reset all position indices to -1 to indicate "not found"
         binPosition = bin_positiondv = binPositionMax = binPositionMaxLimit = binPositionMin = -1;
+        // Clear any previously stored bin data and code lines
         bins.clear();
         linesInDtsCode.clear();
 
-        // Read all lines from the file in one go
+        // Read every line of the DTS file into a list for processing
         linesInDtsCode = Files.readAllLines(Paths.get(KonaBessCore.dts_path));
     }
 
+    /**
+     * Parses the loaded DTS lines to extract GPU DVFS table entries into temporary lists,
+     * then decodes those entries into structured bin objects.
+     */
     public static void decode() {
-        // Temporary storage for extracted lines
+        // Temporary lists to hold raw lines for each table component
         List<String> dvLines = new ArrayList<>();
         List<String> binLines = new ArrayList<>();
         List<String> maxLines = new ArrayList<>();
         List<String> maxLimitLines = new ArrayList<>();
         List<String> minLines = new ArrayList<>();
 
-        // Loop through the lines
+        // Iterate through each line to find and remove matching GPU DVFS entries
         for (int i = 0; i < linesInDtsCode.size(); i++) {
+            // Normalize the line by trimming whitespace and stripping trailing ">;"
             String currentLine = linesInDtsCode.get(i).trim().replace(">;", "");
 
+            // Only proceed if the device uses an Exynos GPU
             if (isExynos()) {
-                // 1. gpu_dvfs_table_size
+                // 1. Find gpu_dvfs_table_size entries
                 if (currentLine.contains("gpu_dvfs_table_size = <")) {
-                    if (bin_positiondv < 0) bin_positiondv = i; // Set position
-                    dvLines.add(linesInDtsCode.remove(i)); // Collect and remove line
-                    i--; // Adjust index
+                    if (bin_positiondv < 0)
+                        bin_positiondv = i;         // Record first occurrence index
+                    dvLines.add(linesInDtsCode.remove(i));              // Extract and remove from code list
+                    i--;                                                // Adjust index after removal
                     continue;
                 }
 
-                // 2. gpu_dvfs_table
+                // 2. Find gpu_dvfs_table entries
                 if (currentLine.contains("gpu_dvfs_table = ")) {
-                    if (binPosition < 0) binPosition = i; // Set position
-                    binLines.add(linesInDtsCode.remove(i)); // Collect and remove line
-                    i--; // Adjust index
+                    if (binPosition < 0) binPosition = i;
+                    binLines.add(linesInDtsCode.remove(i));
+                    i--;
                     continue;
                 }
 
-                // 3. gpu_max_clock
+                // 3. Find gpu_max_clock entries
                 if (currentLine.contains("gpu_max_clock = <")) {
-                    if (binPositionMax < 0) binPositionMax = i; // Set position
-                    maxLines.add(linesInDtsCode.remove(i)); // Collect and remove line
-                    i--; // Adjust index
+                    if (binPositionMax < 0) binPositionMax = i;
+                    maxLines.add(linesInDtsCode.remove(i));
+                    i--;
                     continue;
                 }
 
-                // 4. gpu_max_clock_limit
+                // 4. Find gpu_max_clock_limit entries
                 if (currentLine.contains("gpu_max_clock_limit = <")) {
-                    if (binPositionMaxLimit < 0) binPositionMaxLimit = i; // Set position
-                    maxLimitLines.add(linesInDtsCode.remove(i)); // Collect and remove line
-                    i--; // Adjust index
+                    if (binPositionMaxLimit < 0) binPositionMaxLimit = i;
+                    maxLimitLines.add(linesInDtsCode.remove(i));
+                    i--;
                     continue;
                 }
 
-                // 5. gpu_min_clock
+                // 5. Find gpu_min_clock entries
                 if (currentLine.contains("gpu_min_clock = <")) {
-                    if (binPositionMin < 0) binPositionMin = i; // Set position
-                    minLines.add(linesInDtsCode.remove(i)); // Collect and remove line
-                    i--; // Adjust index
+                    if (binPositionMin < 0) binPositionMin = i;
+                    minLines.add(linesInDtsCode.remove(i));
+                    i--;
                 }
             }
         }
 
-        // Decode collected data
+        // Attempt to decode each set of extracted lines into bin structures
         try {
             if (!dvLines.isEmpty()) decodeTableSize(dvLines);
             if (!binLines.isEmpty()) decode_bin(binLines);
@@ -122,59 +137,126 @@ public class GpuTableEditor {
             if (!maxLimitLines.isEmpty()) decodeTableMaxLimit(maxLimitLines);
             if (!minLines.isEmpty()) decodeTableMin(minLines);
 
-            // Merge bins if all decoding steps succeed
+            // After decoding individual parts, merge them into a single cohesive bin
             mergeBins();
         } catch (Exception e) {
+            // Log any errors encountered during decoding without crashing
             System.err.println("Error during decoding process: " + e.getMessage());
         }
     }
 
+    /**
+     * Checks if the current device is one of the supported Exynos chipsets.
+     *
+     * @return true if the chip type matches exynos9820 or exynos9825.
+     */
     private static boolean isExynos() {
-        return ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825;
+        return ChipInfo.which == ChipInfo.type.exynos9820
+                || ChipInfo.which == ChipInfo.type.exynos9825;
     }
 
+    /**
+     * Merges separate bins for size, levels, max, maxLimit, and min into a single main bin entry.
+     * Removes the interim bins, leaving only the merged result at index 0 or 1.
+     */
     public static void mergeBins() {
+        // Add the table size value from bin[0] into bin[1]
         bins.get(1).dvfsSize.add(bins.get(0).dvfsSize.get(0));
+        // Add the max and limits from the respective bins into bin[1]
         bins.get(1).max.add(bins.get(2).max.get(0));
         bins.get(1).maxLimit.add(bins.get(3).maxLimit.get(0));
         bins.get(1).min.add(bins.get(4).min.get(0));
 
-        // Remove bins 0, 2, 3 and 4
+        // Remove all intermediate bins except the merged one
         for (int i = 4; i >= 0; i--) {
             if (i != 1) bins.remove(i);
         }
     }
 
+    /**
+     * Decodes the gpu_dvfs_table_size line into a bin containing a single DVFS size value.
+     *
+     * @param lines List containing the raw size line.
+     */
     public static void decodeTableSize(List<String> lines) {
         bin bin = new bin();
         bin.dvfsSize = new ArrayList<>();
-        bin.dvfsSize.add(decodeTableFrequency(lines.get(0).trim().replace("gpu_dvfs_table_size = <", "").replace(">;", "")));
+        // Extract the numeric value within "<...>" and decode it to an integer
+        bin.dvfsSize.add(
+                decodeTableFrequency(
+                        lines.get(0)
+                                .trim()
+                                .replace("gpu_dvfs_table_size = <", "")
+                                .replace(">;", "")
+                )
+        );
         bins.add(bin);
     }
 
+    /**
+     * Decodes gpu_max_clock entries into a bin with a single maximum clock frequency.
+     *
+     * @param lines List containing the raw max clock line.
+     */
     public static void decodeTableMax(List<String> lines) {
         bin bin = new bin();
         bin.max = new ArrayList<>();
-        bin.max.add(decodeTableFrequency(lines.get(0).trim().replace("gpu_max_clock = <", "").replace(">;", "")));
+        bin.max.add(
+                decodeTableFrequency(
+                        lines.get(0)
+                                .trim()
+                                .replace("gpu_max_clock = <", "")
+                                .replace(">;", "")
+                )
+        );
         bins.add(bin);
     }
 
+    /**
+     * Decodes gpu_max_clock_limit entries into a bin with a single maximum clock limit.
+     *
+     * @param lines List containing the raw max limit line.
+     */
     public static void decodeTableMaxLimit(List<String> lines) {
         bin bin = new bin();
         bin.maxLimit = new ArrayList<>();
-        bin.maxLimit.add(decodeTableFrequency(lines.get(0).trim().replace("gpu_max_clock_limit = <", "").replace(">;", "")));
+        bin.maxLimit.add(
+                decodeTableFrequency(
+                        lines.get(0)
+                                .trim()
+                                .replace("gpu_max_clock_limit = <", "")
+                                .replace(">;", "")
+                )
+        );
         bins.add(bin);
     }
 
+    /**
+     * Decodes gpu_min_clock entries into a bin with a single minimum clock frequency.
+     *
+     * @param lines List containing the raw min clock line.
+     */
     public static void decodeTableMin(List<String> lines) {
         bin bin = new bin();
         bin.min = new ArrayList<>();
-        bin.min.add(decodeTableFrequency(lines.get(0).trim().replace("gpu_min_clock = <", "").replace(">;", "")));
+        bin.min.add(
+                decodeTableFrequency(
+                        lines.get(0)
+                                .trim()
+                                .replace("gpu_min_clock = <", "")
+                                .replace(">;", "")
+                )
+        );
         bins.add(bin);
     }
 
+    /**
+     * Decodes the gpu_dvfs_table array entries into a bin with multiple level and metadata values.
+     *
+     * @param lines List containing the raw table line with space-separated hex values.
+     */
     public static void decode_bin(List<String> lines) {
-        // Initialize bin object with default values
+        // Create a fresh bin object with all lists initialized
         bin bin = new bin();
         bin.header = new ArrayList<>();
         bin.levels = new ArrayList<>();
@@ -185,7 +267,7 @@ public class GpuTableEditor {
         bin.dvfsSize = new ArrayList<>();
         bin.id = 0;
 
-        // Parse input string and split into groups
+        // Split the hex payload into groups of 8 values each
         String[] hexArray = lines.get(0)
                 .trim()
                 .replace("gpu_dvfs_table = <", "")
@@ -193,36 +275,53 @@ public class GpuTableEditor {
 
         List<List<String>> result = new ArrayList<>();
         for (int i = 0; i < hexArray.length; i += 8) {
-            result.add(Arrays.asList(Arrays.copyOfRange(hexArray, i, Math.min(i + 8, hexArray.length))));
+            result.add(Arrays.asList(
+                    Arrays.copyOfRange(hexArray, i, Math.min(i + 8, hexArray.length))
+            ));
         }
 
-        // Process levels
+        // Decode the first element of each group as a frequency level
         for (List<String> group : result) {
             bin.levels.add(decodeTableFrequency(group.get(0)));
         }
 
-        // Process meta
+        // Collect the remaining bytes of each group as metadata and decode them
         List<String> meta = new ArrayList<>();
         for (List<String> group : result) {
             meta.add(String.join(" ", group.subList(1, group.size())));
         }
-
         for (String m : meta) {
             bin.meta.add(decodeTableFrequency(m));
         }
 
-        // Add bin to bins
+        // Add the fully populated bin to the list for later merging
         bins.add(bin);
     }
 
+    /**
+     * Wraps a single line of hex or numeric data into a level object.
+     *
+     * @param lines Raw string representing a frequency or metadata line.
+     * @return A level object containing the trimmed line.
+     */
     private static level decodeTableFrequency(String lines) {
+        // Create a new level and initialize its lines list
         level level = new level();
         level.lines = new ArrayList<>();
+        // Add the trimmed, cleaned line (removing any trailing ">;")
         level.lines.add(lines.trim().replace(">;", ""));
         return level;
     }
 
+    /**
+     * Generates DTS code lines for a specific GPU table section.
+     *
+     * @param type     Section type (0=size, 1=table, 2=max, 3=maxLimit, 4=min).
+     * @param activity Activity context for error dialogs.
+     * @return A list containing the assembled lines for insertion.
+     */
     public static List<String> genTable(int type, AppCompatActivity activity) {
+        // If not Exynos device, nothing to generate
         if (!isExynos()) {
             return List.of();
         }
@@ -231,10 +330,13 @@ public class GpuTableEditor {
 
         switch (type) {
             case 0 ->
+                // Generate gpu_dvfs_table_size line
                     appendLines(lines, "gpu_dvfs_table_size = <", bins.get(0).dvfsSize.get(0).lines);
             case 1 -> {
+                // Start the gpu_dvfs_table block
                 lines.add("gpu_dvfs_table = <");
                 int l = 0;
+                // For each level, add level and its metadata
                 for (var level : bins.get(0).levels) {
                     lines.addAll(level.lines);
                     lines.add(" ");
@@ -243,42 +345,80 @@ public class GpuTableEditor {
                         lines.add(" ");
                     }
                 }
-                lines.remove(lines.size() - 1); // Remove trailing space
+                // Remove trailing space and close the block
+                lines.remove(lines.size() - 1);
                 lines.add(">;");
             }
-            case 2 -> appendLines(lines, "gpu_max_clock = <", bins.get(0).max.get(0).lines);
+            case 2 ->
+                // Generate gpu_max_clock line
+                    appendLines(lines, "gpu_max_clock = <", bins.get(0).max.get(0).lines);
             case 3 ->
+                // Generate gpu_max_clock_limit line
                     appendLines(lines, "gpu_max_clock_limit = <", bins.get(0).maxLimit.get(0).lines);
-            case 4 -> appendLines(lines, "gpu_min_clock = <", bins.get(0).min.get(0).lines);
-            default -> throw new IllegalArgumentException("Invalid type: " + type);
+            case 4 ->
+                // Generate gpu_min_clock line
+                    appendLines(lines, "gpu_min_clock = <", bins.get(0).min.get(0).lines);
+            default ->
+                // Invalid type parameter
+                    throw new IllegalArgumentException("Invalid type: " + type);
         }
 
-        if (!List.of(String.join("", lines)).toString().contains("0x")) {
-            System.out.println("table: " + List.of(String.join("", lines)).toString());
+        // Verify that output contains expected hex markers
+        if (!String.join("", lines).contains("0x")) {
+            System.out.println("table: " + List.of(String.join("", lines)));
+            // Show error dialog before throwing
             DialogUtil.showError(activity, "Something is messed up with the data");
             throw new RuntimeException("Output does not contain '0x' so something is messed up");
         }
 
+        // Return single concatenated string
         return List.of(String.join("", lines));
     }
 
+    /**
+     * Helper to assemble a prefix, content lines, and closing delimiter.
+     *
+     * @param lines   The list to append to.
+     * @param prefix  The DTS property declaration (e.g., "gpu_min_clock = <").
+     * @param content List of hex or numeric strings to include.
+     */
     private static void appendLines(List<String> lines, String prefix, List<String> content) {
         lines.add(prefix);
         lines.addAll(content);
         lines.add(">;");
     }
 
+    /**
+     * Writes the modified DTS content back to the original DTS file.
+     * Inserts the regenerated GPU tables at their recorded positions.
+     *
+     * @param activity Activity context used for generating table lines.
+     * @throws IOException If writing to the DTS file fails.
+     */
     public static void writeOut(AppCompatActivity activity) throws IOException {
+        // Resolve the path to the DTS file stored in KonaBessCore.dts_path
         Path filePath = Paths.get(KonaBessCore.dts_path);
+
+        // Start with the base DTS lines that had the original GPU table entries removed
         ArrayList<String> newDts = new ArrayList<>(linesInDtsCode);
+
+        // Insert the reconstructed full gpu_dvfs_table block at its original index
         newDts.addAll(binPosition, genTable(1, activity));
+        // Insert the gpu_dvfs_table_size line at its original index
         newDts.addAll(bin_positiondv, genTable(0, activity));
+        // Insert the gpu_min_clock line at its original index
         newDts.addAll(binPositionMin, genTable(4, activity));
+        // Insert the gpu_max_clock_limit line at its original index
         newDts.addAll(binPositionMaxLimit, genTable(3, activity));
+        // Insert the gpu_max_clock line at its original index
         newDts.addAll(binPositionMax, genTable(2, activity));
 
-        // Use try-with-resources for automatic resource management
-        try (BufferedWriter writer = Files.newBufferedWriter(filePath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
+        // Open the file for writing, creating or truncating as needed
+        try (BufferedWriter writer = Files.newBufferedWriter(
+                filePath,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING)) {
+            // Write each line followed by a newline to preserve DTS formatting
             for (String line : newDts) {
                 writer.write(line);
                 writer.newLine();
@@ -286,108 +426,82 @@ public class GpuTableEditor {
         }
     }
 
+    /**
+     * Creates a deep clone of a level object.
+     *
+     * @param from The source level to duplicate.
+     * @return A new level with copied lines.
+     */
     private static level level_clone(level from) {
         level next = new level();
+        // Copy the list of string lines
         next.lines = new ArrayList<>(from.lines);
         return next;
     }
 
+    /**
+     * Checks if another GPU frequency level can be added to the specified bin.
+     *
+     * @param binID   Index of the bin in question.
+     * @param context Context for showing a toast if limit reached.
+     * @return true if under the threshold; false otherwise.
+     */
     public static boolean canAddNewLevel(int binID, Context context) {
         if (bins.get(binID).levels.size() <= 10) {
             return true;
         } else {
+            // Notify user that no more levels can be added
             Toast.makeText(context, R.string.unable_add_more, Toast.LENGTH_SHORT).show();
             return false;
         }
     }
 
+    /**
+     * Converts an integer input into a level object with hexadecimal representation.
+     *
+     * @param input Numeric frequency or metadata value.
+     * @return A level containing a single "0x..." line.
+     */
     private static level inputToHex(int input) {
         level level = new level();
+        // Format integer as hex with metadata byte "0x8"
         level.lines = List.of("0x" + Integer.toHexString(input) + " 0x8");
         return level;
     }
 
+    /**
+     * Extracts a numeric frequency from a level by decoding the first hex line.
+     *
+     * @param level The level containing hex-encoded frequency.
+     * @return The decoded frequency value.
+     * @throws Exception If no valid hex line is found.
+     */
     private static long getFrequencyFromLevel(level level) throws Exception {
-        return level.lines.stream() // Stream through lines
-                .filter(line -> line.contains("0x")) // Find the first line containing "0x"
-                .findFirst() // Get the first match
-                .map(DtsHelper::decode_int_line) // Decode the line
-                .map(decoded -> decoded.value) // Extract the value
-                .orElseThrow(Exception::new); // Throw an exception if no match is found
+        return level.lines.stream()
+                // Filter only lines containing hex marker
+                .filter(line -> line.contains("0x"))
+                .findFirst()
+                // Decode via helper, then extract its numeric value field
+                .map(DtsHelper::decode_int_line)
+                .map(decoded -> decoded.value)
+                // Throw if absent
+                .orElseThrow(Exception::new);
     }
 
-    private static void generateLevels1(AppCompatActivity activity, int id, LinearLayout page) throws Exception {
-        generateData();
-
-        ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
-            @Override
-            public void onBackPressed() {
-                try {
-                    generateBins(activity, page);
-                } catch (Exception e) {
-                    DialogUtil.showError(activity, "Generate Bins error");
-                }
-            }
-        };
-
-        ListView listView = new ListView(activity);
-        ArrayList<ParamAdapter.item> items = new ArrayList<>();
-
-        items.add(new ParamAdapter.item() {{
-            title = activity.getResources().getString(R.string.back);
-            subtitle = "";
-        }});
-
-        items.add(new ParamAdapter.item() {{
-            title = activity.getResources().getString(R.string.new_item);
-            subtitle = activity.getResources().getString(R.string.new_desc);
-        }});
-
-        for (level level : bins.get(id).levels) {
-            long freq = getFrequencyFromLevel(level);
-            if (freq == 0)
-                continue;
-
-            ParamAdapter.item item = new ParamAdapter.item();
-            item.title = freq / 1000 + "MHz";
-            item.subtitle = "";
-            items.add(item);
-        }
-
-        items.add(new ParamAdapter.item() {{
-            title = activity.getResources().getString(R.string.new_item);
-            subtitle = activity.getResources().getString(R.string.new_desc);
-        }});
-
-        listView.setOnItemClickListener((parent, view, position, id1) -> {
-            if (posIsSizeMinOne(activity, id, page, position, items)) return;
-
-            if (posIs0(activity, page, position)) return;
-
-            if (posIs1(activity, id, page, position)) return;
-
-            position -= 2;
-
-            try {
-                generateALevel(activity, id, position, page);
-            } catch (Exception e) {
-                DialogUtil.showError(activity, "Add a new level error");
-            }
-        });
-
-        listView.setOnItemLongClickListener((parent, view, position, idd) -> {
-            return removeFrequency(activity, id, page, position, items);
-        });
-
-        listView.setAdapter(new ParamAdapter(items, activity));
-        page.removeAllViews();
-        page.addView(listView);
-    }
-
+    /**
+     * Builds and displays a dynamic UI for editing GPU frequency levels.
+     * Replaces ListView with Material RecyclerView for modern styling.
+     *
+     * @param activity Calling activity for context and back-press handling.
+     * @param id       Index of the bin to edit.
+     * @param page     Container layout where the card view will be placed.
+     * @throws Exception If generating levels or bins fails.
+     */
     private static void generateLevels(AppCompatActivity activity, int id, LinearLayout page) throws Exception {
+        // Populate bins and related data structures before building UI
         generateData();
 
-        // Handle back press
+        // Override back button to regenerate the bins view
         ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
             @Override
             public void onBackPressed() {
@@ -399,13 +513,12 @@ public class GpuTableEditor {
             }
         };
 
-        // Material RecyclerView instead of ListView
+        // Create a RecyclerView with vertical LinearLayoutManager
         RecyclerView recyclerView = new RecyclerView(activity);
         recyclerView.setLayoutManager(new LinearLayoutManager(activity));
 
-        // Create items
+        // Prepare items for the adapter: Back, New Item, existing levels, New Item
         ArrayList<ParamAdapter.item> items = new ArrayList<>();
-
         // Add the 'Back' button
         items.add(new ParamAdapter.item() {{
             title = activity.getResources().getString(R.string.back);
@@ -421,7 +534,7 @@ public class GpuTableEditor {
         // Add frequency levels
         for (level level : bins.get(id).levels) {
             long freq = getFrequencyFromLevel(level);
-            if (freq == 0) continue;
+            if (freq == 0) continue;  // Skip zero entries
 
             ParamAdapter.item item = new ParamAdapter.item();
             item.title = freq / 1000 + "MHz";
@@ -435,124 +548,182 @@ public class GpuTableEditor {
             subtitle = activity.getResources().getString(R.string.new_desc);
         }});
 
-        // Set Adapter with Material You design
+        // Instantiate MaterialLevelAdapter with click handling logic
         MaterialLevelAdapter adapter = new MaterialLevelAdapter(items, activity, position -> {
-            // Handle item clicks
+            // Prevent selection of reserved positions and handle new-level creation
             if (posIsSizeMinOne(activity, id, page, position, items)) return;
             if (posIs0(activity, page, position)) return;
             if (posIs1(activity, id, page, position)) return;
-
-            // Adjust position for frequency selection
-            position -= 2;
-
+            position -= 2; // Adjust index after headers
             try {
                 generateALevel(activity, id, position, page);
             } catch (Exception e) {
                 DialogUtil.showError(activity, "Add a new level error");
             }
         });
-
         recyclerView.setAdapter(adapter);
 
-        // Handle long-press for removing frequencies
+        // Gesture detector to handle long-press deletion
         GestureDetector gestureDetector = new GestureDetector(activity, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public void onLongPress(MotionEvent e) {
                 View child = recyclerView.findChildViewUnder(e.getX(), e.getY());
                 if (child != null) {
                     int position = recyclerView.getChildAdapterPosition(child);
-
-                    // Handle long-press for deletion
                     removeFrequency(activity, id, page, position, items);
                 }
             }
 
             @Override
             public boolean onSingleTapUp(MotionEvent e) {
-                return true; // Ensure single-tap gestures are detected
+                return true; // Ensure click is recognized
             }
         });
 
-        // Attach both click and long-press handling
+        // Attach touch listener to handle both taps and long-presses
+        // Attach a touch listener to intercept both tap and long-press gestures on RecyclerView items
         recyclerView.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
             @Override
             public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+                // Determine which child view (item) is under the touch coordinates
                 View child = rv.findChildViewUnder(e.getX(), e.getY());
-
+                // Only proceed if a child was touched and the gestureDetector recognizes the event
                 if (child != null && gestureDetector.onTouchEvent(e)) {
+                    // Get the adapter position of the touched item
                     int position = rv.getChildAdapterPosition(child);
-
-                    // Handle **single-click** immediately
-                    if (e.getAction() == MotionEvent.ACTION_UP) { // Direct click
+                    // Only react when the user lifts their finger (ACTION_UP)
+                    if (e.getAction() == MotionEvent.ACTION_UP) {
+                        // Handle special positions before normal level selection:
+                        //   - Last 'New Item' entry for adding levels
+                        //   - Position 0 for 'Back' to previous screen
+                        //   - Position 1 for cloning first level
                         if (posIsSizeMinOne(activity, id, page, position, items)) return true;
                         if (posIs0(activity, page, position)) return true;
                         if (posIs1(activity, id, page, position)) return true;
-
-                        // Adjust position for frequency selection
+                        // Adjust index to account for header items (Back + New Item)
                         position -= 2;
-
                         try {
+                            // Generate the UI for editing the selected level
                             generateALevel(activity, id, position, page);
                         } catch (Exception ex) {
+                            // Show an error dialog if something goes wrong during level generation
                             DialogUtil.showError(activity, "Add a new level error");
                         }
                     }
                 }
+                // Return false to allow the touch event to continue to other listeners if not consumed
                 return false;
             }
 
             @Override
             public void onTouchEvent(@NonNull RecyclerView rv, @NonNull MotionEvent e) {
-                // No-op
+                // No action needed here; touch events are handled in onInterceptTouchEvent
             }
 
             @Override
             public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {
-                // No-op
+                // No-op: we do not need to handle requests to disallow intercept
             }
         });
 
-        // Dynamic MaterialCardView container
+        // Wrap the RecyclerView in a dynamic MaterialCardView
         MaterialCardView cardView = DialogUtil.createDynamicCard(activity, recyclerView);
 
-        // Add the styled RecyclerView to the page
+        // Replace previous page content with the new card view
         page.removeAllViews();
         page.addView(cardView);
     }
 
-    private static boolean removeFrequency(AppCompatActivity activity, int id, LinearLayout page, int position, ArrayList<ParamAdapter.item> items) {
-        if (position == items.size() - 1)
-            return true;
-        if (bins.get(id).levels.size() == 1)
-            return true;
+    /**
+     * Prompts the user with a confirmation dialog to remove a selected GPU frequency level.
+     * <p>
+     * This method safeguards against removing the placeholder "New Item" at the end of the list
+     * and ensures at least one frequency level remains. On user confirmation, it updates the
+     * underlying data model and refreshes the UI.
+     * </p>
+     *
+     * @param activity Calling activity, used for dialog theming and context.
+     * @param id       Index of the bin from which to remove a level.
+     * @param page     Container layout in which the levels UI will be regenerated.
+     * @param position Adapter position of the tapped item in the RecyclerView.
+     * @param items    List of displayed items (including "Back" and "New Item" entries).
+     */
+    private static void removeFrequency(AppCompatActivity activity,
+                                        int id,
+                                        LinearLayout page,
+                                        int position,
+                                        ArrayList<ParamAdapter.item> items) {
+        // If the tapped item is the last "New Item" placeholder, do nothing.
+        if (position == items.size() - 1) {
+            return;
+        }
+        // If there is only one level left, prevent its removal to avoid an empty table.
+        if (bins.get(id).levels.size() == 1) {
+            return;
+        }
         try {
+            // Build and display a confirmation dialog showing the frequency (in MHz) to remove.
+            long freqMHz = getFrequencyFromLevel(bins.get(id).levels.get(position - 2)) / 1000;
+            String message = String.format(
+                    activity.getResources().getString(R.string.remove_msg),
+                    freqMHz
+            );
+
             new MaterialAlertDialogBuilder(activity)
-                    .setTitle(R.string.remove)
-                    .setMessage(String.format(activity.getResources().getString(R.string.remove_msg), getFrequencyFromLevel(bins.get(id).levels.get(position - 2)) / 1000))
-                    .setPositiveButton(R.string.yes, (dialog, which) -> {
-                        bins.get(id).levels.remove(position - 2);
-                        bins.get(id).meta.remove(position - 2);
-                        try {
-                            generateLevels(activity, id, page);
-                        } catch (Exception e) {
-                            DialogUtil.showError(activity, "Remove a frequency error");
-                        }
-                    })
-                    .setNegativeButton(R.string.no, null)
-                    .create().show();
+                    .setTitle(R.string.remove)           // Dialog title (e.g., "Remove")
+                    .setMessage(message)                // Dialog body with the frequency value
+                    .setPositiveButton(R.string.yes,    // "Yes" button confirms removal
+                            (dialog, which) -> {
+                                // Remove the selected frequency level and its metadata entry
+                                bins.get(id).levels.remove(position - 2);
+                                bins.get(id).meta.remove(position - 2);
+                                try {
+                                    // Regenerate the levels UI to reflect the removal
+                                    generateLevels(activity, id, page);
+                                } catch (Exception e) {
+                                    // Show an error if UI regeneration fails
+                                    DialogUtil.showError(activity, "Remove a frequency error");
+                                }
+                            }
+                    )
+                    .setNegativeButton(R.string.no,     // "No" button cancels removal
+                            null
+                    )
+                    .create()
+                    .show();
         } catch (Exception e) {
+            // If any unexpected error occurs (e.g., parsing frequency), log it to console.
             System.out.println(e.getMessage());
         }
-        return true;
     }
 
+    /**
+     * Handles adding a new level when the last list item is tapped.
+     *
+     * @param activity Calling activity for context and toast.
+     * @param id       Bin index to modify.
+     * @param page     Layout to refresh.
+     * @param position Adapter position of the tapped item.
+     * @param items    List of displayed items.
+     * @return true if the tap was handled here; false otherwise.
+     */
     private static boolean posIsSizeMinOne(AppCompatActivity activity, int id, LinearLayout page, int position, ArrayList<ParamAdapter.item> items) {
+        // If tap was on the last 'New Item' entry
         if (position == items.size() - 1) {
             try {
+                // Check if adding another level is allowed
                 if (!canAddNewLevel(id, activity))
                     return true;
-                bins.get(id).levels.add(bins.get(id).levels.size() - 1, level_clone(bins.get(id).levels.get(bins.get(id).levels.size() - 1)));
-                bins.get(0).meta.add(bins.get(0).meta.get(bins.get(0).meta.size() - 1));
+                // Clone the last level into the second-last position
+                bins.get(id).levels.add(
+                        bins.get(id).levels.size() - 1,
+                        level_clone(bins.get(id).levels.get(bins.get(id).levels.size() - 1))
+                );
+                // Also duplicate the corresponding meta entry
+                bins.get(0).meta.add(
+                        bins.get(0).meta.get(bins.get(0).meta.size() - 1)
+                );
+                // Refresh level editing UI
                 generateLevels(activity, id, page);
             } catch (Exception e) {
                 DialogUtil.showError(activity, "Can't add new level");
@@ -562,21 +733,43 @@ public class GpuTableEditor {
         return false;
     }
 
+    /**
+     * Updates bin[0] aggregate values based on current levels before regenerating UI.
+     */
     private static void generateData() {
+        // Set bin.min[0] to the lowest frequency (last level)
         bins.get(0).min.set(0, bins.get(0).levels.get(bins.get(0).levels.size() - 1));
+        // Set bin.max[0] and maxLimit[0] to the highest frequency (first level)
         bins.get(0).max.set(0, bins.get(0).levels.get(0));
         bins.get(0).maxLimit.set(0, bins.get(0).levels.get(0));
+        // Update dvfsSize[0] to the current number of levels
         bins.get(0).dvfsSize.set(0, inputToHex(bins.get(0).levels.size()));
     }
 
+    /**
+     * Handles cloning the first level when the second list item is tapped.
+     *
+     * @param activity Calling activity for context and toast.
+     * @param id       Bin index to modify.
+     * @param page     Layout to refresh.
+     * @param position Adapter position of the tapped item.
+     * @return true if the tap was handled here; false otherwise.
+     */
     private static boolean posIs1(AppCompatActivity activity, int id, LinearLayout page, int position) {
+        // If tap was on the second item (position 1)
         if (position == 1) {
             try {
+                // Check add-level limit
                 if (!canAddNewLevel(id, activity))
                     return true;
-
-                bins.get(id).levels.add(0, level_clone(bins.get(id).levels.get(0)));
+                // Clone the first level to the beginning of the list
+                bins.get(id).levels.add(
+                        0,
+                        level_clone(bins.get(id).levels.get(0))
+                );
+                // Also clone the corresponding meta entry
                 bins.get(0).meta.add(0, bins.get(0).meta.get(0));
+                // Refresh UI
                 generateLevels(activity, id, page);
             } catch (Exception e) {
                 DialogUtil.showError(activity, "Clone a level error");
@@ -586,20 +779,43 @@ public class GpuTableEditor {
         return false;
     }
 
+    /**
+     * Handles taps on the first list item (position 0), which serves as a "Back" button
+     * to return from the level-edit screen back to the bin overview.
+     *
+     * @param activity Calling activity, used to invoke UI updates.
+     * @param page     The layout container where the bins list will be regenerated.
+     * @param position The adapter position of the tapped item.
+     * @return true if this method consumed the tap (i.e., position was 0); false otherwise.
+     */
     private static boolean posIs0(AppCompatActivity activity, LinearLayout page, int position) {
+        // Only handle taps on the very first item (the "Back" entry)
         if (position == 0) {
             try {
+                // Rebuild and display the top-level bin selection UI
                 generateBins(activity, page);
             } catch (Exception e) {
+                // Wrap any unexpected exception in a runtime exception to avoid silent failures
                 throw new RuntimeException(e);
             }
+            // Indicate that this tap was handled here and should not be processed further
             return true;
         }
+        // For any other position, do nothing here and allow other handlers to process it
         return false;
     }
 
+    /**
+     * Builds and displays a detailed UI to edit individual parameters of a selected level.
+     *
+     * @param activity Calling activity for dialog and context.
+     * @param last     Bin index containing the level.
+     * @param levelID  Index of the level within the bin.
+     * @param page     Container for inserting the level-edit UI.
+     * @throws Exception If decoding or UI generation fails.
+     */
     private static void generateALevel(AppCompatActivity activity, int last, int levelID, LinearLayout page) throws Exception {
-        // Handle back press to go back to the previous level
+        // Override back-button to return to generateLevels view
         ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
             @Override
             public void onBackPressed() {
@@ -610,55 +826,59 @@ public class GpuTableEditor {
             }
         };
 
-        // RecyclerView instead of ListView
+        // Setup RecyclerView to list editable parameters
         RecyclerView recyclerView = new RecyclerView(activity);
         recyclerView.setLayoutManager(new LinearLayoutManager(activity));
 
-        // Prepare the item list
+        // Build list items: first a 'Back' button, then each parameter line
         ArrayList<ParamAdapter.item> items = new ArrayList<>();
-
-        // Back button item
         items.add(new ParamAdapter.item() {{
             title = activity.getResources().getString(R.string.back);
             subtitle = "";
         }});
-
-        // Add level parameters
         for (String line : bins.get(last).levels.get(levelID).lines) {
-            items.add(new ParamAdapter.item() {{
-                title = KonaBessStr.convert_level_params(DtsHelper.decode_hex_line(line).name, activity);
-                subtitle = String.valueOf(DtsHelper.decode_int_line(line).value);
-            }});
+            // Decode each line to display name and numeric value
+            ParamAdapter.item item = new ParamAdapter.item();
+            item.title = KonaBessStr.convert_level_params(
+                    DtsHelper.decode_hex_line(line).name, activity
+            );
+            item.subtitle = String.valueOf(DtsHelper.decode_int_line(line).value);
+            items.add(item);
         }
 
-        // RecyclerView Adapter
+        // Adapter to handle taps on parameters
         recyclerView.setAdapter(new MaterialLevelAdapter(items, activity, (position) -> {
             try {
                 if (position == 0) {
-                    // Back button functionality
+                    // Handle 'Back' tap
                     generateLevels(activity, last, page);
                     return;
                 }
 
-                // Edit dialog for parameter values
-                String raw_value = String.valueOf(DtsHelper.decode_int_line(
-                        bins.get(last).levels.get(levelID).lines.get(position - 1)).value);
-
-                // Material EditText with dynamic styles
+                // Prepare edit dialog for the tapped parameter
+                String raw_value = String.valueOf(
+                        DtsHelper.decode_int_line(
+                                bins.get(last).levels.get(levelID).lines.get(position - 1)
+                        ).value
+                );
                 EditText editText = new EditText(activity);
                 editText.setInputType(InputType.TYPE_CLASS_NUMBER);
                 editText.setText(raw_value);
                 editText.setPadding(32, 32, 32, 32);
 
-                // Dynamic Material Dialog
+                // Show Material dialog with EditText for saving new value
                 new MaterialAlertDialogBuilder(activity)
-                        .setTitle(activity.getResources().getString(R.string.edit) + " \"" + items.get(position).title + "\"")
+                        .setTitle(activity.getResources().getString(R.string.edit)
+                                + " \"" + items.get(position).title + "\"")
                         .setView(editText)
                         .setPositiveButton(R.string.save, (dialog, which) -> {
                             try {
+                                // Update the line with the new hex-encoded value
                                 bins.get(last).levels.get(levelID).lines.set(
-                                        position - 1, DtsHelper.inputToHex(editText.getText().toString()));
-
+                                        position - 1,
+                                        DtsHelper.inputToHex(editText.getText().toString())
+                                );
+                                // Refresh this level's UI
                                 generateALevel(activity, last, levelID, page);
                                 Toast.makeText(activity, R.string.save_success, Toast.LENGTH_SHORT).show();
                             } catch (Exception e) {
@@ -675,16 +895,23 @@ public class GpuTableEditor {
             }
         }));
 
-        // Wrap RecyclerView in MaterialCardView
+        // Wrap RecyclerView in a MaterialCardView for styling
         MaterialCardView cardView = DialogUtil.createDynamicCard(activity, recyclerView);
 
-        // Update the page view
+        // Replace any existing views and display the card
         page.removeAllViews();
         page.addView(cardView);
     }
 
+    /**
+     * Generates the list of bins for selection and displays them in a Material-styled RecyclerView.
+     *
+     * @param activity Calling activity for context and back-navigation handling.
+     * @param page     Container layout where the bins list will be inserted.
+     * @throws Exception If UI generation fails.
+     */
     private static void generateBins(AppCompatActivity activity, LinearLayout page) throws Exception {
-        // Handle back press to return to the main view
+        // Override back button to return to the main activity view
         ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
             @Override
             public void onBackPressed() {
@@ -692,22 +919,24 @@ public class GpuTableEditor {
             }
         };
 
-        // Create RecyclerView instead of ListView
+        // Create RecyclerView for vertical scrolling of bin items
         RecyclerView recyclerView = new RecyclerView(activity);
-        recyclerView.setLayoutManager(new LinearLayoutManager(activity)); // Vertical scrolling
+        recyclerView.setLayoutManager(new LinearLayoutManager(activity));
 
-        // Prepare items
+        // Build list of ParamAdapter items representing each bin
         ArrayList<ParamAdapter.item> items = new ArrayList<>();
         for (int i = 0; i < bins.size(); i++) {
             ParamAdapter.item item = new ParamAdapter.item();
+            // Convert bin ID into a localized name string
             item.title = KonaBessStr.convertBins(bins.get(i).id, activity);
-            item.subtitle = ""; // Can be extended for additional info
+            item.subtitle = ""; // Placeholder for additional info
             items.add(item);
         }
 
-        // Adapter for RecyclerView
+        // Set up the RecyclerView with a MaterialBinAdapter and click handler
         recyclerView.setAdapter(new MaterialBinAdapter(items, activity, (position) -> {
             try {
+                // Generate the levels UI for the selected bin
                 generateLevels(activity, position, page);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -715,103 +944,124 @@ public class GpuTableEditor {
             }
         }));
 
-        // Dynamic Material Card for wrapping RecyclerView
+        // Wrap the RecyclerView in a styled MaterialCardView
         MaterialCardView cardView = DialogUtil.createDynamicCard(activity, recyclerView);
 
-        // Update page UI
+        // Replace existing page content with the card view
         page.removeAllViews();
         page.addView(cardView);
     }
 
+    /**
+     * Constructs a toolbar with a save button for the frequency table editor.
+     *
+     * @param activity Calling activity for context and styling.
+     * @return A View containing the toolbar and horizontal button scroll.
+     */
     private static View generateToolBar(AppCompatActivity activity) {
-        // Create a MaterialToolbar
+        // Create and configure the top app bar using MaterialToolbar
         MaterialToolbar toolbar = new MaterialToolbar(activity);
-
-        // Set toolbar title
-        toolbar.setTitle(R.string.save_freq_table);
+        toolbar.setTitle(R.string.save_freq_table);  // Set the title text from resources
         toolbar.setTitleTextColor(MaterialColors.getColor(
                 activity,
-                com.google.android.material.R.attr.colorOnPrimary, // Dynamic color
-                Color.WHITE // Fallback color
+                com.google.android.material.R.attr.colorOnPrimary, // Dynamic text color attribute
+                Color.WHITE                                       // Fallback color
         ));
 
-        // Dynamic background color for toolbar
-        int toolbarColor = DialogUtil.getDynamicColor(activity, com.google.android.material.R.attr.colorPrimary);
-        toolbar.setBackgroundColor(toolbarColor); // Matches notification primary color
+        // Apply a dynamic background color based on the current Material theme primary color
+        int toolbarColor = DialogUtil.getDynamicColor(
+                activity,
+                com.google.android.material.R.attr.colorPrimary
+        );
+        toolbar.setBackgroundColor(toolbarColor);
 
-        // Set toolbar layout parameters
+        // Define layout parameters for full-width and wrap-content height
         toolbar.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
-        toolbar.setPadding(16, 16, 16, 16); // Padding inside toolbar
+        toolbar.setPadding(16, 16, 16, 16);  // Add padding inside the toolbar
 
-        // Add a Horizontal ScrollView for buttons
+        // Create a HorizontalScrollView to host action buttons without crowding the toolbar
         HorizontalScrollView scrollView = new HorizontalScrollView(activity);
         scrollView.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
 
-        // LinearLayout inside ScrollView to hold buttons
+        // Inside the scroll view, use a horizontal LinearLayout to arrange buttons side by side
         LinearLayout buttonContainer = new LinearLayout(activity);
         buttonContainer.setOrientation(LinearLayout.HORIZONTAL);
         buttonContainer.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
-        scrollView.addView(buttonContainer); // Add button container to scroll view
+        scrollView.addView(buttonContainer); // Add the button container to the scroll view
 
-        // Add a button inside the container
-        MaterialButton button = new MaterialButton(activity, null,
-                com.google.android.material.R.attr.materialButtonOutlinedStyle);
+        // Create an outlined MaterialButton for the "Save" action
+        MaterialButton button = new MaterialButton(
+                activity,
+                null,
+                com.google.android.material.R.attr.materialButtonOutlinedStyle
+        );
+        button.setText(R.string.save_freq_table);  // Button label text
+        button.setPadding(16, 8, 16, 8);          // Internal padding for touch comfort
+        button.setCornerRadius(16);               // Rounded corners for a polished look
+        button.setStrokeWidth(2);                 // Outline border width
 
-        button.setText(R.string.save_freq_table);
-        button.setPadding(16, 8, 16, 8); // Padding inside button
-        button.setCornerRadius(16); // Rounded corners
-        button.setStrokeWidth(2); // Border width
+        // Fetch dynamic colors for the button to match the Material color scheme
+        int buttonBackground = DialogUtil.getDynamicColor(
+                activity,
+                com.google.android.material.R.attr.colorPrimaryContainer
+        );
+        int buttonTextColor = DialogUtil.getDynamicColor(
+                activity,
+                com.google.android.material.R.attr.colorOnPrimaryContainer
+        );
+        int buttonStrokeColor = DialogUtil.getDynamicColor(
+                activity,
+                com.google.android.material.R.attr.colorPrimary
+        );
+        button.setBackgroundTintList(ColorStateList.valueOf(buttonBackground)); // Fill color
+        button.setTextColor(buttonTextColor);                                   // Text color
+        button.setStrokeColor(ColorStateList.valueOf(buttonStrokeColor));       // Border color
 
-        // Dynamic button colors
-        int buttonBackground = DialogUtil.getDynamicColor(activity, com.google.android.material.R.attr.colorPrimaryContainer);
-        int buttonTextColor = DialogUtil.getDynamicColor(activity, com.google.android.material.R.attr.colorOnPrimaryContainer);
-        int buttonStrokeColor = DialogUtil.getDynamicColor(activity, com.google.android.material.R.attr.colorPrimary);
-
-        button.setBackgroundTintList(ColorStateList.valueOf(buttonBackground));
-        button.setTextColor(buttonTextColor);
-        button.setStrokeColor(ColorStateList.valueOf(buttonStrokeColor));
-
-        // Set button click listener
+        // Set up the click listener: attempt to save the DTS file and notify the user
         button.setOnClickListener(v -> {
             try {
-                writeOut(activity);
+                writeOut(activity);  // Write changes back to the DTS file
                 Toast.makeText(activity, R.string.save_success, Toast.LENGTH_SHORT).show();
             } catch (Exception e) {
+                // Log the error and show an error dialog if saving fails
                 System.out.println(e.getMessage() + e.getCause());
                 DialogUtil.showError(activity, R.string.save_failed);
             }
         });
 
-        // Add button to container
+        // Add the configured save button into the horizontal button container
         buttonContainer.addView(button);
 
-        // Create a wrapper layout for both toolbar and scroll view
+        // Wrap the toolbar and scrollable button row into a vertical LinearLayout
         LinearLayout wrapperLayout = new LinearLayout(activity);
         wrapperLayout.setOrientation(LinearLayout.VERTICAL);
         wrapperLayout.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
+        wrapperLayout.addView(toolbar);     // Place the toolbar at the top
+        wrapperLayout.addView(scrollView);  // Place the buttons directly below
 
-        wrapperLayout.addView(toolbar);     // Add toolbar first
-        wrapperLayout.addView(scrollView);  // Add scrollable buttons
-
-        return wrapperLayout; // Return the wrapper layout
+        // Return the assembled view hierarchy
+        return wrapperLayout;
     }
 
+    /**
+     * RecyclerView.Adapter implementation for displaying GPU frequency levels and bins.
+     */
     public static class MaterialLevelAdapter extends RecyclerView.Adapter<MaterialLevelAdapter.ViewHolder> {
-        private final ArrayList<ParamAdapter.item> items;
-        private final Context context;
-        private final OnItemClickListener listener;
+        private final ArrayList<ParamAdapter.item> items; // Data items to display
+        private final Context context;                    // Activity context for theming
+        private final OnItemClickListener listener;       // Click callback interface
 
         public MaterialLevelAdapter(ArrayList<ParamAdapter.item> items, Context context, OnItemClickListener listener) {
             this.items = items;
@@ -822,34 +1072,32 @@ public class GpuTableEditor {
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            // MaterialCardView for each item
+            // Create a MaterialCardView for each item view
             MaterialCardView cardView = new MaterialCardView(context);
             cardView.setCardElevation(6f);
             cardView.setStrokeWidth(2);
-
+            // Apply dynamic card background and border colors
             int colorPrimary = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorPrimaryContainer);
             int strokeColor = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorPrimary);
-
             cardView.setCardBackgroundColor(colorPrimary);
             cardView.setStrokeColor(strokeColor);
 
-            // TextView inside the card
+            // Create a MaterialTextView inside the card for item text
             MaterialTextView textView = new MaterialTextView(context);
             textView.setPadding(32, 24, 32, 24);
             textView.setTextSize(16);
             textView.setTextColor(DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorOnSurface));
 
             cardView.addView(textView);
-
             return new ViewHolder(cardView, textView);
         }
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            // Bind title and subtitle into the text view
             ParamAdapter.item item = items.get(position);
             holder.textView.setText(item.title + "\n" + item.subtitle);
-
-            // Handle item clicks
+            // Forward click events to the listener
             holder.itemView.setOnClickListener(v -> listener.onItemClick(position));
         }
 
@@ -858,25 +1106,56 @@ public class GpuTableEditor {
             return items.size();
         }
 
+        /**
+         * Interface for item click callbacks.
+         */
         public interface OnItemClickListener {
             void onItemClick(int position);
         }
 
+        /**
+         * ViewHolder holds references to the card view and text view for reuse.
+         * <p>
+         * This inner class caches the child views for a single RecyclerView item,
+         * avoiding repeated findViewById calls and improving scroll performance.
+         * </p>
+         */
         static class ViewHolder extends RecyclerView.ViewHolder {
+            // Reference to the MaterialTextView displaying the item's title and subtitle
             MaterialTextView textView;
 
+            /**
+             * Constructor for the ViewHolder.
+             *
+             * @param itemView The root view of the RecyclerView item (a MaterialCardView).
+             * @param textView The MaterialTextView inside the card used to show text.
+             */
             public ViewHolder(@NonNull View itemView, MaterialTextView textView) {
                 super(itemView);
+                // Store the passed-in TextView for quick access in onBindViewHolder
                 this.textView = textView;
             }
         }
     }
 
+    /**
+     * RecyclerView.Adapter implementation for displaying GPU table bins in a Material-styled list.
+     */
     public static class MaterialBinAdapter extends RecyclerView.Adapter<MaterialBinAdapter.ViewHolder> {
+        // List of items to display (one per bin)
         private final ArrayList<ParamAdapter.item> items;
+        // Context used for inflating views and accessing resources
         private final Context context;
+        // Callback for handling item clicks
         private final OnItemClickListener listener;
 
+        /**
+         * Constructor for the adapter.
+         *
+         * @param items    Data items representing each bin.
+         * @param context  Activity context for theming.
+         * @param listener Click listener for handling selection.
+         */
         public MaterialBinAdapter(ArrayList<ParamAdapter.item> items, Context context, OnItemClickListener listener) {
             this.items = items;
             this.context = context;
@@ -886,50 +1165,72 @@ public class GpuTableEditor {
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            // Inflate MaterialCardView
+            // Create a MaterialCardView to wrap each bin item
             MaterialCardView cardView = new MaterialCardView(context);
-            cardView.setCardElevation(6f);
-            cardView.setStrokeWidth(2);
+            cardView.setCardElevation(6f);      // Elevation for shadow effect
+            cardView.setStrokeWidth(2);         // Border width
 
-            // Dynamic colors
-            int colorPrimary = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorPrimaryContainer);
-            int strokeColor = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorPrimary);
-
+            // Dynamically obtain colors from the theme
+            int colorPrimary = DialogUtil.getDynamicColor(
+                    context,
+                    com.google.android.material.R.attr.colorPrimaryContainer
+            );
+            int strokeColor = DialogUtil.getDynamicColor(
+                    context,
+                    com.google.android.material.R.attr.colorPrimary
+            );
+            // Apply background and border colors
             cardView.setCardBackgroundColor(colorPrimary);
             cardView.setStrokeColor(strokeColor);
 
-            // TextView inside the card
+            // Create a text view to show the bin title
             MaterialTextView textView = new MaterialTextView(context);
-            textView.setPadding(32, 24, 32, 24);
-            textView.setTextSize(16);
-            textView.setTextColor(DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorOnSurface));
-            cardView.addView(textView);
+            textView.setPadding(32, 24, 32, 24);  // Padding inside card
+            textView.setTextSize(16);             // Text size in SP
+            textView.setTextColor(DialogUtil.getDynamicColor(
+                    context,
+                    com.google.android.material.R.attr.colorOnSurface
+            ));
+            cardView.addView(textView);           // Add text view to card
 
             return new ViewHolder(cardView, textView);
         }
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            // Bind the title for the bin at this position
             ParamAdapter.item item = items.get(position);
             holder.textView.setText(item.title);
 
-            // Handle click events
+            // Forward click events to the provided listener
             holder.itemView.setOnClickListener(v -> listener.onItemClick(position));
         }
 
         @Override
         public int getItemCount() {
+            // Total number of bins
             return items.size();
         }
 
-        // Interface for click handling
+        /**
+         * Interface for handling click events on bins.
+         */
         public interface OnItemClickListener {
             void onItemClick(int position);
         }
 
+        /**
+         * ViewHolder holds references to the card view and its text.
+         */
         static class ViewHolder extends RecyclerView.ViewHolder {
             MaterialTextView textView;
 
+            /**
+             * Constructor for ViewHolder.
+             *
+             * @param itemView The root card view.
+             * @param textView The text view displaying the bin title.
+             */
             public ViewHolder(@NonNull View itemView, MaterialTextView textView) {
                 super(itemView);
                 this.textView = textView;
@@ -937,56 +1238,87 @@ public class GpuTableEditor {
         }
     }
 
+    /**
+     * Data class representing a GPU DVFS table bin with all related parameters.
+     */
     private static class bin {
-        int id;
-        List<String> header;
-        List<level> levels;
-        List<level> meta;
-        List<level> dvfsSize;
-        List<level> max;
-        List<level> maxLimit;
-        List<level> min;
+        int id;                   // Unique identifier for this bin
+        List<String> header;      // Raw header lines (if any)
+        List<level> levels;       // DVFS frequency levels
+        List<level> meta;         // Metadata associated with each level
+        List<level> dvfsSize;     // Table size information
+        List<level> max;          // Maximum clock values
+        List<level> maxLimit;     // Maximum clock limit values
+        List<level> min;          // Minimum clock values
     }
 
+    /**
+     * Simple container for lines of hex or numeric data representing a table element.
+     */
     private static class level {
-        List<String> lines;
+        List<String> lines;       // Raw string lines (e.g., "0x1234 0x8")
     }
 
+    /**
+     * Thread to handle GPU table extraction, parsing, and UI generation in background.
+     */
     static class gpuTableLogic extends Thread {
-        AppCompatActivity activity;
-        AlertDialog waiting;
-        LinearLayout showedView;
-        LinearLayout page;
+        private final AppCompatActivity activity; // Activity context for UI updates
+        private AlertDialog waiting;             // Wait dialog displayed during processing
+        private final LinearLayout showedView;   // Container to display toolbar and bins
+        private LinearLayout page;               // Sub-container for bin/level views
 
+        /**
+         * Constructor for the processing thread.
+         *
+         * @param activity   Activity context for UI.
+         * @param showedView Parent layout where UI will be injected.
+         */
         public gpuTableLogic(AppCompatActivity activity, LinearLayout showedView) {
             this.activity = activity;
             this.showedView = showedView;
         }
 
+        @Override
         public void run() {
+            // Show a wait dialog on the UI thread before starting work
             activity.runOnUiThread(() -> {
                 waiting = DialogUtil.getWaitDialog(activity, R.string.getting_freq_table);
                 waiting.show();
             });
 
             try {
+                // Perform initialization and decoding steps
                 init();
                 decode();
             } catch (Exception e) {
-                activity.runOnUiThread(() -> DialogUtil.showError(activity, R.string.getting_freq_table_failed + " " + e));
+                // Show error dialog if extraction or parsing fails
+                activity.runOnUiThread(() -> DialogUtil.showError(
+                        activity,
+                        R.string.getting_freq_table_failed + " " + e
+                ));
             }
 
+            // Once done, update the UI: dismiss dialog, show toolbar and bins
             activity.runOnUiThread(() -> {
-                waiting.dismiss();
-                showedView.removeAllViews();
+                waiting.dismiss();              // Hide the wait dialog
+                showedView.removeAllViews();   // Clear existing content
+
+                // Add the save toolbar at the top
                 showedView.addView(generateToolBar(activity));
+
+                // Prepare page container for bins
                 page = new LinearLayout(activity);
                 page.setOrientation(LinearLayout.VERTICAL);
+
                 try {
+                    // Generate and display the list of bins
                     generateBins(activity, page);
                 } catch (Exception e) {
                     DialogUtil.showError(activity, "Failed to generate bins");
                 }
+
+                // Add the bins page below the toolbar
                 showedView.addView(page);
             });
         }
