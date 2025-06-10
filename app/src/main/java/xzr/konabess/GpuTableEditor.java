@@ -11,7 +11,6 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -254,7 +253,7 @@ public class GpuTableEditor {
         }
 
         if (!List.of(String.join("", lines)).toString().contains("0x")) {
-            System.out.println("table: " + List.of(String.join("", lines)).toString());
+            System.out.println("table: " + List.of(String.join("", lines)));
             DialogUtil.showError(activity, "Something is messed up with the data");
             throw new RuntimeException("Output does not contain '0x' so something is messed up");
         }
@@ -314,74 +313,6 @@ public class GpuTableEditor {
                 .map(DtsHelper::decode_int_line) // Decode the line
                 .map(decoded -> decoded.value) // Extract the value
                 .orElseThrow(Exception::new); // Throw an exception if no match is found
-    }
-
-    private static void generateLevels1(AppCompatActivity activity, int id, LinearLayout page) throws Exception {
-        generateData();
-
-        ((MainActivity) activity).onBackPressedListener = new MainActivity.onBackPressedListener() {
-            @Override
-            public void onBackPressed() {
-                try {
-                    generateBins(activity, page);
-                } catch (Exception e) {
-                    DialogUtil.showError(activity, "Generate Bins error");
-                }
-            }
-        };
-
-        ListView listView = new ListView(activity);
-        ArrayList<ParamAdapter.item> items = new ArrayList<>();
-
-        items.add(new ParamAdapter.item() {{
-            title = activity.getResources().getString(R.string.back);
-            subtitle = "";
-        }});
-
-        items.add(new ParamAdapter.item() {{
-            title = activity.getResources().getString(R.string.new_item);
-            subtitle = activity.getResources().getString(R.string.new_desc);
-        }});
-
-        for (level level : bins.get(id).levels) {
-            long freq = getFrequencyFromLevel(level);
-            if (freq == 0)
-                continue;
-
-            ParamAdapter.item item = new ParamAdapter.item();
-            item.title = freq / 1000 + "MHz";
-            item.subtitle = "";
-            items.add(item);
-        }
-
-        items.add(new ParamAdapter.item() {{
-            title = activity.getResources().getString(R.string.new_item);
-            subtitle = activity.getResources().getString(R.string.new_desc);
-        }});
-
-        listView.setOnItemClickListener((parent, view, position, id1) -> {
-            if (posIsSizeMinOne(activity, id, page, position, items)) return;
-
-            if (posIs0(activity, page, position)) return;
-
-            if (posIs1(activity, id, page, position)) return;
-
-            position -= 2;
-
-            try {
-                generateALevel(activity, id, position, page);
-            } catch (Exception e) {
-                DialogUtil.showError(activity, "Add a new level error");
-            }
-        });
-
-        listView.setOnItemLongClickListener((parent, view, position, idd) -> {
-            return removeFrequency(activity, id, page, position, items);
-        });
-
-        listView.setAdapter(new ParamAdapter(items, activity));
-        page.removeAllViews();
-        page.addView(listView);
     }
 
     private static void generateLevels(AppCompatActivity activity, int id, LinearLayout page) throws Exception {
@@ -520,11 +451,11 @@ public class GpuTableEditor {
         page.addView(cardView);
     }
 
-    private static boolean removeFrequency(AppCompatActivity activity, int id, LinearLayout page, int position, ArrayList<ParamAdapter.item> items) {
+    private static void removeFrequency(AppCompatActivity activity, int id, LinearLayout page, int position, ArrayList<ParamAdapter.item> items) {
         if (position == items.size() - 1)
-            return true;
+            return;
         if (bins.get(id).levels.size() == 1)
-            return true;
+            return;
         try {
             new MaterialAlertDialogBuilder(activity)
                     .setTitle(R.string.remove)
@@ -543,7 +474,6 @@ public class GpuTableEditor {
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
-        return true;
     }
 
     private static boolean posIsSizeMinOne(AppCompatActivity activity, int id, LinearLayout page, int position, ArrayList<ParamAdapter.item> items) {
