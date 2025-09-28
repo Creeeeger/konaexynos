@@ -432,8 +432,7 @@ public class MainActivity extends AppCompatActivity {
                     items.add(new ParamAdapter.item() {{
                         title = dtb.id + " " + ChipInfo.name2ChipDesc(dtb.type, MainActivity.this);
                         // Mark the current DTB index with a subtitle hint
-                        subtitle = dtb.id == dtbIndex
-                                ? MainActivity.this.getString(R.string.possible_dtb) : "";
+                        subtitle = dtb.id == dtbIndex ? MainActivity.this.getString(R.string.possible_dtb) : "";
                     }});
                 }
 
