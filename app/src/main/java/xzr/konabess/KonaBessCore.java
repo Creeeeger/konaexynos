@@ -12,6 +12,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 import xzr.konabess.utils.AssetsUtil;
@@ -33,6 +34,11 @@ public class KonaBessCore {
 
     // Path to the generated DTS file (populated elsewhere)
     public static String dts_path;
+
+    public static String fileNameDtbFile = "";
+
+    public static String devPath;
+    public static String fileNameImg;
     // List of detected DTB (Device Tree Blob) objects to choose from
     public static ArrayList<dtb> dtbs;
 
@@ -145,61 +151,61 @@ public class KonaBessCore {
      * @throws IOException If any shell command fails or the output file is invalid.
      */
     public static void getDtImage(Context context) throws IOException {
-        // Define the internal and external output paths for dtb.img
-        String internalPath = context.getFilesDir().getAbsolutePath() + "/dtb.img";
-        String externalPath = "/storage/emulated/0/dtb.img";
+        String internalBase = context.getFilesDir().getAbsolutePath();
+        String externalBase = "/storage/emulated/0";
 
-        // Shell commands to dump the DTB, change its permissions, and copy it externally
-        String[] commands = {
-                "dd if=/dev/block/by-name/dtb of=" + internalPath,
-                "chmod 777 " + internalPath,
-                "cp -f " + internalPath + " " + externalPath
-        };
+        File dtb = new File("/dev/block/by-name/dtb");
+        File dtbo = new File("/dev/block/by-name/dtbo");
 
-        // Execute commands in shell
+        if (dtb.exists()) {
+            devPath = dtb.getAbsolutePath();
+            fileNameImg = "dtb.img";
+        } else if (dtbo.exists()) {
+            devPath = dtbo.getAbsolutePath();
+            fileNameImg = "dtbo.img";
+        } else {
+            throw new IOException("Neither /dev/block/by-name/dtb nor /dev/block/by-name/dtbo exists");
+        }
+
+        String internalPath = internalBase + "/" + fileNameImg;
+        String externalPath = externalBase + "/" + fileNameImg;
+
         Process process = null;
         try {
-            // Start a root shell session
             process = new ProcessBuilder("su").redirectErrorStream(true).start();
-
             try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
                  BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 
-                // Send each command to the shell
-                for (String command : commands) {
-                    writer.write(command + "\n");
-                }
-                // Exit the shell
+                writer.write("dd if=" + devPath + " of=" + internalPath + "\n");
+                writer.write("chmod 644 " + internalPath + "\n");
+                writer.write("cp -f " + internalPath + " " + externalPath + "\n");
                 writer.write("exit\n");
                 writer.flush();
 
-                // Drain the shell's output to prevent hangs
-                while (reader.readLine() != null) {
-                    // No-op: output can be logged if needed
-                }
-
-                // Verify successful execution of commands
-                if (process.waitFor() != 0) {
-                    throw new IOException("Shell command execution failed.");
-                }
+                // Drain output so the process doesn't block
+                while (reader.readLine() != null) { /* drain */ }
             }
+
+            if (process.waitFor() != 0) {
+                throw new IOException("su/dd failed with exit code " + process.exitValue());
+            }
+
+            File target = new File(internalPath);
+            if (!target.exists() || !target.canRead() || target.length() <= 0L) {
+                if (target.exists()) {
+                    //noinspection ResultOfMethodCallIgnored
+                    target.delete();
+                }
+                throw new IOException("Created " + fileNameImg + " is empty or unreadable");
+            }
+            // success
         } catch (InterruptedException e) {
-            // Restore interruption status and report error
             Thread.currentThread().interrupt();
-            throw new IOException("Process interrupted", e);
+            throw new IOException("Interrupted", e);
+        } catch (Exception e) {
+            throw new IOException("Failed to create " + fileNameImg, e);
         } finally {
-            // Clean up the process if it was started
-            if (process != null) {
-                process.destroy();
-            }
-        }
-
-        // Validate that the dtb.img file was created and is readable
-        File target = new File(internalPath);
-        if (!target.exists() || !target.canRead()) {
-            // Clean up invalid file if present
-            if (target.exists()) target.delete();
-            throw new IOException("Failed to create or read dtb.img");
+            if (process != null) process.destroy();
         }
     }
 
@@ -211,9 +217,9 @@ public class KonaBessCore {
      */
     public static void dtbImage2dts(Context context) throws IOException {
         // Unpack the boot image to extract DTB(s)
-        unpackBootImage(context);
+        fileNameDtbFile = unpackBootImage(context);
         // Convert extracted DTB(s) to DTS format
-        dtb2dts(context);
+        dtb2dts(context, fileNameDtbFile);
     }
 
     /**
@@ -222,7 +228,7 @@ public class KonaBessCore {
      * @param context Application context to locate files directory and execute binaries.
      * @throws IOException If the extract_dtb binary is missing, not executable, or the unpack process fails.
      */
-    public static void unpackBootImage(Context context) throws IOException {
+    public static String unpackBootImage(Context context) throws IOException {
         // Get the absolute path to the app's internal files directory
         String filesDir = context.getFilesDir().getAbsolutePath();
         // Reference to the extract_dtb binary placed in filesDir by setupEnv()
@@ -236,18 +242,18 @@ public class KonaBessCore {
         // Build a shell command to:
         // 1. cd into filesDir
         // 2. export LD_LIBRARY_PATH to include filesDir for dependent shared libs
-        // 3. run extract_dtb on dtb.img
+        // 3. run extract_dtb on dtb.img or dtbo.img
         // 4. create dtb directory if not present
         // 5. move extracted blobs into filesDir
         // 6. clean up the dtb directory
         String shellCmd = String.format(
                 "cd %s && " +
                         "export LD_LIBRARY_PATH=%s:$LD_LIBRARY_PATH && " +
-                        "./extract_dtb dtb.img && " +
-                        "[ -d dtb ] || mkdir dtb && " +
+                        "./extract_dtb %s && " +
+                        "[ -d dtb ] || mkdir -p dtb && " +
                         "mv dtb/* . || echo 'Move failed' && " +
                         "rm -rf dtb",
-                filesDir, filesDir
+                filesDir, filesDir, fileNameImg
         );
         ProcessBuilder processBuilder = new ProcessBuilder("su", "-c", shellCmd)
                 .redirectErrorStream(true);
@@ -278,11 +284,17 @@ public class KonaBessCore {
             process.destroy();
         }
 
-        // Validate that at least one expected DTB file was extracted
-        File extractedFile = new File(filesDir, "01_dtbdump_samsung,armv8.dtb");
-        if (!extractedFile.exists()) {
-            throw new IOException("Failed to extract DTB. Logs: " + log);
+        // Pick first file "01_dtbdump*.dtb"
+        File[] candidates = new File(filesDir).listFiles((dir, name) -> name.startsWith("01_dtbdump") && name.endsWith(".dtb"));
+
+        if (candidates == null || candidates.length == 0) {
+            throw new IOException("No DTB files extracted. Logs:\n" + log);
         }
+
+        Arrays.sort(candidates, Comparator.comparing(File::getName));
+        File first = candidates[0];
+
+        return first.getAbsolutePath();
     }
 
     /**
@@ -291,7 +303,7 @@ public class KonaBessCore {
      * @param context Application context for file operations.
      * @throws IOException If dtc binary is missing/not executable, conversion fails, or output is invalid.
      */
-    private static void dtb2dts(Context context) throws IOException {
+    private static void dtb2dts(Context context, String fileName) throws IOException {
         // Base directory where dtc and DTB files reside
         String filesDir = context.getFilesDir().getAbsolutePath();
 
@@ -302,7 +314,7 @@ public class KonaBessCore {
         }
 
         // Input DTB file produced by unpackBootImage
-        File inputFile = new File(filesDir, "01_dtbdump_samsung,armv8.dtb");
+        File inputFile = new File(filesDir, fileName);
         if (!inputFile.exists()) {
             throw new IOException("Input DTB file does not exist: " + inputFile.getAbsolutePath());
         }
@@ -370,8 +382,8 @@ public class KonaBessCore {
         dtbs = new ArrayList<>();
 
         // Supported chip identifier strings and corresponding enum types
-        String[] chipTypes = {"exynos9820", "exynos9825"};
-        ChipInfo.type[] chipInfoTypes = {ChipInfo.type.exynos9820, ChipInfo.type.exynos9825};
+        String[] chipTypes = {"exynos9820", "exynos9825", "exynos990"};
+        ChipInfo.type[] chipInfoTypes = {ChipInfo.type.exynos9820, ChipInfo.type.exynos9825, ChipInfo.type.exynos990};
 
         // Iterate through supported types and test each one
         for (int i = 0; i < chipTypes.length; i++) {
@@ -469,8 +481,7 @@ public class KonaBessCore {
      */
     private static List<String> getCmdline() throws IOException {
         // Prepare the shell command to read /proc/cmdline as root
-        ProcessBuilder processBuilder = new ProcessBuilder("su", "-c", "cat /proc/cmdline")
-                .redirectErrorStream(true);
+        ProcessBuilder processBuilder = new ProcessBuilder("su", "-c", "cat /proc/cmdline").redirectErrorStream(true);
         Process process = processBuilder.start();
 
         // Collect tokens from the output
@@ -508,7 +519,10 @@ public class KonaBessCore {
     public static void writeDtbImage(Context context) throws IOException {
         // Define the source path in internal storage and the target block device path
         String inputPath = new File(context.getFilesDir(), "dtb_new.img").getAbsolutePath();
-        String outputPath = "/dev/block/by-name/dtb";
+
+        // Strip ".img" from fileNameImg to get block device name (dtb / dtbo)
+        String partitionName = fileNameImg.replaceFirst("\\.img$", "");
+        String outputPath = "/dev/block/by-name/" + partitionName;
 
         // Ensure the input DTB image exists before attempting write
         File inputFile = new File(inputPath);
@@ -535,7 +549,7 @@ public class KonaBessCore {
         try {
             int exitCode = process.waitFor();
             if (exitCode != 0) {
-                throw new IOException("Failed to write DTB image. Exit code: " + exitCode + "\nLogs: " + log);
+                throw new IOException("Failed to write DTB/dtbo image. Exit code: " + exitCode + "\nLogs: " + log);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -580,7 +594,7 @@ public class KonaBessCore {
     private static void dts2dtb(Context context) throws IOException {
         String filesDir = context.getFilesDir().getAbsolutePath();
         File dtsFile = new File(filesDir, "0.dts");
-        File outputFile = new File(filesDir, "01_dtbdump_samsung,armv8.dtb");
+        File outputFile = new File(filesDir, fileNameDtbFile);
         File dtcBinary = new File(filesDir, "dtc");
 
         // Verify the source DTS exists
@@ -594,8 +608,8 @@ public class KonaBessCore {
 
         // Build the shell command for conversion
         String command = String.format(
-                "cd %s && ./dtc -I dts -O dtb 0.dts -o 01_dtbdump_samsung,armv8.dtb",
-                filesDir
+                "cd %s && ./dtc -I dts -O dtb 0.dts -o %s",
+                filesDir, fileNameDtbFile
         );
 
         ProcessBuilder processBuilder = new ProcessBuilder("su", "-c", command)
@@ -639,7 +653,7 @@ public class KonaBessCore {
     private static void dtb2bootImage(Context context) throws IOException {
         String filesDir = context.getFilesDir().getAbsolutePath();
         File kernelFile = new File(filesDir, "00_kernel");
-        File dtbFile = new File(filesDir, "01_dtbdump_samsung,armv8.dtb");
+        File dtbFile = new File(filesDir, fileNameDtbFile);
         File outputFile = new File(filesDir, "dtb_new.img");
         File repackDtbBinary = new File(filesDir, "repack_dtb");
 
@@ -658,8 +672,8 @@ public class KonaBessCore {
 
         // Construct the repack shell command
         String command = String.format(
-                "cd %s && export LD_LIBRARY_PATH=%s:$LD_LIBRARY_PATH && ./repack_dtb 00_kernel 01_dtbdump_samsung,armv8.dtb dtb_new.img",
-                filesDir, filesDir
+                "cd %s && export LD_LIBRARY_PATH=%s:$LD_LIBRARY_PATH && ./repack_dtb 00_kernel %s dtb_new.img",
+                filesDir, filesDir, fileNameDtbFile
         );
 
         ProcessBuilder processBuilder = new ProcessBuilder("su", "-c", command)
