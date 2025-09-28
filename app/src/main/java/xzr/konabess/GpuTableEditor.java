@@ -971,7 +971,7 @@ public class GpuTableEditor {
         // Apply a dynamic background color based on the current Material theme primary color
         int toolbarColor = DialogUtil.getDynamicColor(
                 activity,
-                com.google.android.material.R.attr.colorPrimary
+                R.attr.colorPrimary
         );
         toolbar.setBackgroundColor(toolbarColor);
 
@@ -1020,7 +1020,7 @@ public class GpuTableEditor {
         );
         int buttonStrokeColor = DialogUtil.getDynamicColor(
                 activity,
-                com.google.android.material.R.attr.colorPrimary
+                R.attr.colorPrimary
         );
         button.setBackgroundTintList(ColorStateList.valueOf(buttonBackground)); // Fill color
         button.setTextColor(buttonTextColor);                                   // Text color
@@ -1078,7 +1078,7 @@ public class GpuTableEditor {
             cardView.setStrokeWidth(2);
             // Apply dynamic card background and border colors
             int colorPrimary = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorPrimaryContainer);
-            int strokeColor = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorPrimary);
+            int strokeColor = DialogUtil.getDynamicColor(context, R.attr.colorPrimary);
             cardView.setCardBackgroundColor(colorPrimary);
             cardView.setStrokeColor(strokeColor);
 
@@ -1177,7 +1177,7 @@ public class GpuTableEditor {
             );
             int strokeColor = DialogUtil.getDynamicColor(
                     context,
-                    com.google.android.material.R.attr.colorPrimary
+                    R.attr.colorPrimary
             );
             // Apply background and border colors
             cardView.setCardBackgroundColor(colorPrimary);

@@ -107,7 +107,7 @@ public class MainActivity extends AppCompatActivity {
         toolbarCard.setCardElevation(12); // Smooth shadow for depth
         toolbarCard.setStrokeWidth(2);
         // Accent border using primary color from dynamic theme
-        toolbarCard.setStrokeColor(getDynamicColor(this, com.google.android.material.R.attr.colorPrimary));
+        toolbarCard.setStrokeColor(getDynamicColor(this, R.attr.colorPrimary));
         // Card background using surface color
         toolbarCard.setCardBackgroundColor(getDynamicColor(this, com.google.android.material.R.attr.colorSurface));
         toolbarCard.setLayoutParams(new LinearLayout.LayoutParams(
