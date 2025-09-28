@@ -98,3 +98,7 @@ A simple Android app that lets you **edit custom GPU frequency tables without re
 ---
 
 _You’re welcome to fork, hack, and contribute!_
+
+
+- for 9830 (990) the table is stored in the dtb image
+- for 9825 (of F62) its stored in the dtbo image

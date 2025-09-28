@@ -160,8 +160,8 @@ public class DialogUtil {
         cardView.setStrokeWidth(2);
 
         // Fetch dynamic colors from theme (Material You)
-        int colorPrimary = getDynamicColor(context, com.google.android.material.R.attr.colorPrimaryContainer);
-        int strokeColor = getDynamicColor(context, com.google.android.material.R.attr.colorPrimary);
+        int colorPrimary = getDynamicColor(context,R.attr.colorPrimaryContainer);
+        int strokeColor = getDynamicColor(context, R.attr.colorPrimary);
 
         cardView.setCardBackgroundColor(colorPrimary);
         cardView.setStrokeColor(strokeColor);
@@ -222,7 +222,7 @@ public class DialogUtil {
         progressBar.setLayoutParams(params);
 
         // Set indeterminate tint using dynamic color
-        int tintColor = getDynamicColor(context, com.google.android.material.R.attr.colorPrimary);
+        int tintColor = getDynamicColor(context, R.attr.colorPrimary);
         progressBar.setIndeterminateTintList(ColorStateList.valueOf(tintColor));
         return progressBar;
     }
