@@ -34,6 +34,8 @@ public class ChipInfo {
             case exynos9820 -> activity.getResources().getString(R.string.e9820);
             // Exynos 9825 (used in Galaxy Note10/S10 5G) description
             case exynos9825 -> activity.getResources().getString(R.string.e9825);
+
+            case exynos990 -> activity.getResources().getString(R.string.e990);
             // Fallback for unsupported or unknown types
             default -> activity.getResources().getString(R.string.unknown);
         };
@@ -58,6 +60,7 @@ public class ChipInfo {
         /**
          * Unrecognized or unspecified processor
          */
+        exynos990,
         unknown
     }
 }

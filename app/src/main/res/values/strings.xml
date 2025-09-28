@@ -44,4 +44,5 @@
     <string name="wait">Please wait Boot image is getting extracted</string>
     <string name="e9820">Exynos 9820</string>
     <string name="e9825">Exynos 9825</string>
+    <string name="e990">Exynos 990</string>
 </resources>

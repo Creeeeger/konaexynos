@@ -155,18 +155,17 @@ public class DialogUtil {
      */
     @NonNull
     public static MaterialCardView createDynamicCard(Context context, View child) {
-        MaterialCardView cardView = new MaterialCardView(context);
-        cardView.setCardElevation(6f); // Subtle Material shadow
-        cardView.setStrokeWidth(2);
+        MaterialCardView card = new MaterialCardView(context);
 
-        // Fetch dynamic colors from theme (Material You)
-        int colorPrimary = getDynamicColor(context,R.attr.colorPrimaryContainer);
-        int strokeColor = getDynamicColor(context, R.attr.colorPrimary);
+        int surface = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorSurface);       // neutral¹-100
+        int outlineColor = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorOutline);       // 10 % outline
 
-        cardView.setCardBackgroundColor(colorPrimary);
-        cardView.setStrokeColor(strokeColor);
-        cardView.addView(child);
-        return cardView;
+        card.setCardBackgroundColor(surface);
+        card.setStrokeColor(outlineColor);
+        card.setStrokeWidth(1);
+        card.setCardElevation(6f);
+        card.addView(child);
+        return card;
     }
 
     /**
