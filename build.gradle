@@ -7,8 +7,8 @@ buildscript {
         mavenCentral()  // Maven Central repository (for other dependencies)
     }
     dependencies {
-        // Android Gradle Plugin, version 8.1.0 (check version matches your project's needs)
-        classpath 'com.android.tools.build:gradle:8.10.1'
+        // Android Gradle Plugin, version 8.13.0
+        classpath 'com.android.tools.build:gradle:8.13.0'
         // NOTE: Add more classpath dependencies here if you use other Gradle plugins.
     }
 }
