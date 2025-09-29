@@ -177,7 +177,7 @@ public class KonaBessCore {
                  BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
 
                 writer.write("dd if=" + devPath + " of=" + internalPath + "\n");
-                writer.write("chmod 644 " + internalPath + "\n");
+                writer.write("chmod 777 " + internalPath + "\n");
                 writer.write("cp -f " + internalPath + " " + externalPath + "\n");
                 writer.write("exit\n");
                 writer.flush();
@@ -314,7 +314,11 @@ public class KonaBessCore {
         }
 
         // Input DTB file produced by unpackBootImage
-        File inputFile = new File(filesDir, fileName);
+        File inputFile = new File(fileName);
+        if (!inputFile.isAbsolute()) {
+            inputFile = new File(filesDir, fileName);
+        }
+        
         if (!inputFile.exists()) {
             throw new IOException("Input DTB file does not exist: " + inputFile.getAbsolutePath());
         }
