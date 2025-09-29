@@ -294,7 +294,7 @@ public class KonaBessCore {
         Arrays.sort(candidates, Comparator.comparing(File::getName));
         File first = candidates[0];
 
-        return first.getAbsolutePath();
+        return first.getName();
     }
 
     /**
@@ -314,11 +314,7 @@ public class KonaBessCore {
         }
 
         // Input DTB file produced by unpackBootImage
-        File inputFile = new File(fileName);
-        if (!inputFile.isAbsolute()) {
-            inputFile = new File(filesDir, fileName);
-        }
-        
+        File inputFile = new File(filesDir, fileName);        
         if (!inputFile.exists()) {
             throw new IOException("Input DTB file does not exist: " + inputFile.getAbsolutePath());
         }
