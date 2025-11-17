@@ -5,6 +5,7 @@ import android.content.res.ColorStateList;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
@@ -163,7 +164,15 @@ public class DialogUtil {
         card.setCardBackgroundColor(surface);
         card.setStrokeColor(outlineColor);
         card.setStrokeWidth(1);
-        card.setCardElevation(6f);
+        card.setCardElevation(0f);
+        card.setRadius(dp(context, 24));
+        card.setUseCompatPadding(false);
+        card.setPreventCornerOverlap(false);
+        int padding = dp(context, 20);
+        card.setContentPadding(padding, padding, padding, padding);
+        if (child.getParent() instanceof ViewGroup) {
+            ((ViewGroup) child.getParent()).removeView(child);
+        }
         card.addView(child);
         return card;
     }
@@ -182,6 +191,11 @@ public class DialogUtil {
         scrollView.addView(textView);
 
         return createDynamicCard(context, scrollView);
+    }
+
+    private static int dp(Context context, int value) {
+        float density = context.getResources().getDisplayMetrics().density;
+        return Math.round(value * density);
     }
 
     /**

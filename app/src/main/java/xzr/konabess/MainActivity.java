@@ -5,19 +5,21 @@ import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.util.TypedValue;
-import android.view.Gravity;
 import android.view.View;
-import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.ScrollView;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.chip.Chip;
 import com.google.android.material.color.DynamicColors;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.textview.MaterialTextView;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -86,115 +88,190 @@ public class MainActivity extends AppCompatActivity {
      * Build and display the main user interface programmatically.
      */
     void showMainView() {
-        // Reset any custom back press listener when showing main view
         onBackPressedListener = null;
 
-        // --- Root Layout Configuration ---
+        ScrollView rootScroll = new ScrollView(this);
+        rootScroll.setFillViewport(true);
+        rootScroll.setBackgroundResource(R.drawable.bg_main_gradient);
+
         LinearLayout mainView = new LinearLayout(this);
         mainView.setOrientation(LinearLayout.VERTICAL);
         mainView.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT
-        ));
-        // Use a subtle surface variant background from the dynamic theme
-        mainView.setBackgroundColor(getDynamicColor(this, com.google.android.material.R.attr.colorSurfaceVariant));
-        mainView.setPadding(32, 32, 32, 32); // Add spacious padding
-        setContentView(mainView);
-
-        // --- Toolbar Section Setup ---
-        MaterialCardView toolbarCard = new MaterialCardView(this, null, R.style.Widget_Material3_CardView_Elevated);
-        toolbarCard.setRadius(24); // Softer rounded corners for a modern look
-        toolbarCard.setCardElevation(12); // Smooth shadow for depth
-        toolbarCard.setStrokeWidth(2);
-        // Accent border using primary color from dynamic theme
-        toolbarCard.setStrokeColor(getDynamicColor(this, R.attr.colorPrimary));
-        // Card background using surface color
-        toolbarCard.setCardBackgroundColor(getDynamicColor(this, com.google.android.material.R.attr.colorSurface));
-        toolbarCard.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
-        toolbarCard.setPadding(16, 16, 16, 16);
+        mainView.setPadding(dp(16), dp(32), dp(16), dp(24));
+        rootScroll.addView(mainView);
+        setContentView(rootScroll);
 
-        // Create horizontal layout inside the card for toolbar items
-        LinearLayout toolbar = new LinearLayout(this);
-        toolbar.setOrientation(LinearLayout.HORIZONTAL);
-        toolbar.setGravity(Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL); // Center items both vertically and horizontally
-        toolbar.setLayoutParams(new LinearLayout.LayoutParams(
+        MaterialToolbar toolbar = new MaterialToolbar(this);
+        toolbar.setTitle(getString(R.string.app_name));
+        toolbar.setSubtitle(R.string.toolbar_subtitle);
+        toolbar.setBackgroundColor(getDynamicColor(this, com.google.android.material.R.attr.colorSurfaceVariant));
+        int onSurfaceColor = getDynamicColor(this, com.google.android.material.R.attr.colorOnSurface);
+        int onSurfaceVariant = getDynamicColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant);
+        toolbar.setTitleTextColor(onSurfaceColor);
+        toolbar.setSubtitleTextColor(onSurfaceVariant);
+        toolbar.setContentInsetStartWithNavigation(0);
+        toolbar.setElevation(0f);
+        toolbar.setPadding(dp(16), dp(12), dp(16), dp(12));
+        mainView.addView(toolbar);
+
+        MaterialCardView heroCard = createSurfaceCard();
+        LinearLayout heroContent = createCardContentLayout();
+        heroContent.addView(createHeadlineTextView(R.string.chipset_card_title));
+
+        String chipName = ChipInfo.name2ChipDesc(ChipInfo.which, this);
+        boolean isUnknownChip = ChipInfo.which == ChipInfo.type.unknown;
+        MaterialTextView heroBody = createBodyTextView(
+                isUnknownChip
+                        ? getString(R.string.chipset_unknown_hint)
+                        : getString(R.string.chipset_card_body, chipName)
+        );
+        heroContent.addView(heroBody);
+
+        Chip chipBadge = new Chip(this);
+        chipBadge.setText(isUnknownChip ? getString(R.string.unknown) : chipName);
+        chipBadge.setTextAppearance(R.style.TextAppearance_Material3_LabelLarge);
+        chipBadge.setChipBackgroundColor(ColorStateList.valueOf(
+                getDynamicColor(this, com.google.android.material.R.attr.colorPrimaryContainer)
+        ));
+        chipBadge.setTextColor(getDynamicColor(this, com.google.android.material.R.attr.colorOnPrimaryContainer));
+        chipBadge.setChipStrokeWidth(dp(1));
+        chipBadge.setChipStrokeColor(ColorStateList.valueOf(
+                getDynamicColor(this, com.google.android.material.R.attr.colorOnPrimary)
+        ));
+        LinearLayout.LayoutParams chipParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        chipParams.topMargin = dp(16);
+        chipBadge.setLayoutParams(chipParams);
+        heroContent.addView(chipBadge);
+        heroCard.addView(heroContent);
+        mainView.addView(heroCard);
+
+        MaterialCardView actionsCard = createSurfaceCard();
+        LinearLayout actionsContent = createCardContentLayout();
+        actionsContent.addView(createHeadlineTextView(R.string.actions_card_title));
+        actionsContent.addView(createBodyTextView(getString(R.string.actions_card_body)));
+
+        LinearLayout buttonColumn = new LinearLayout(this);
+        buttonColumn.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams buttonColumnParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-        ));
-        toolbar.setPadding(8, 8, 8, 8);
+        );
+        buttonColumnParams.topMargin = dp(12);
+        buttonColumn.setLayoutParams(buttonColumnParams);
+        actionsContent.addView(buttonColumn);
+        actionsCard.addView(actionsContent);
+        mainView.addView(actionsCard);
 
-        // Add the toolbar layout to the card, and the card to the root view
-        toolbarCard.addView(toolbar);
-        mainView.addView(toolbarCard);
+        MaterialCardView workspaceCard = createSurfaceCard();
+        LinearLayout workspaceContent = createCardContentLayout();
+        workspaceContent.addView(createHeadlineTextView(R.string.workspace_title));
 
-        // --- Scrollable Editor Section ---
-        HorizontalScrollView editorScroll = new HorizontalScrollView(this);
-        LinearLayout editor = new LinearLayout(this);
-        editor.setOrientation(LinearLayout.HORIZONTAL);
-        editor.setPadding(16, 16, 16, 16); // Padding for readability of code/editor content
-        editorScroll.addView(editor);
-        // Light container background for the editor area
-        editorScroll.setBackgroundColor(getDynamicColor(this, com.google.android.material.R.attr.colorSurfaceVariant));
-        editorScroll.setPadding(12, 12, 12, 12);
-        editorScroll.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        ));
-        editorScroll.setElevation(6); // Subtle depth effect
-        mainView.addView(editorScroll);
-
-        // --- Content Display Section ---
         LinearLayout showdView = new LinearLayout(this);
         showdView.setOrientation(LinearLayout.VERTICAL);
-        showdView.setLayoutParams(new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams showdViewParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-        ));
-        showdView.setPadding(24, 24, 24, 24);
-        // Accent container using primary container color from dynamic theme
-        showdView.setBackgroundColor(getDynamicColor(this, com.google.android.material.R.attr.colorPrimaryContainer));
-        showdView.setElevation(8); // Slight shadow for emphasis
-        mainView.addView(showdView);
+        );
+        showdViewParams.topMargin = dp(12);
+        showdView.setLayoutParams(showdViewParams);
+        workspaceContent.addView(showdView);
+        workspaceCard.addView(workspaceContent);
+        mainView.addView(workspaceCard);
 
-        // --- Add Buttons to Toolbar with Associated Actions ---
-        // Button for repacking and flashing logic
-        addToolbarButton(toolbar, R.string.repack_and_flash, v -> new repackLogic().start());
-        // Button for launching GPU frequency table editor
-        addToolbarButton(toolbar, R.string.edit_gpu_freq_table, v ->
+        addActionButton(buttonColumn, R.string.repack_and_flash, v -> new repackLogic().start());
+        addActionButton(buttonColumn, R.string.edit_gpu_freq_table, v ->
                 new GpuTableEditor.gpuTableLogic(this, showdView).start()
         );
     }
 
     /**
-     * Adds a Material 3 styled button to the toolbar
+     * Adds a Material 3 styled button to the primary action column.
      */
-    private void addToolbarButton(LinearLayout toolbar, int textId, View.OnClickListener onClickListener) {
-        // Create a new MaterialButton with outlined style
-        MaterialButton button = new MaterialButton(this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
-        // Set the button text from string resources
+    private void addActionButton(LinearLayout container, int textId, View.OnClickListener onClickListener) {
+        MaterialButton button = new MaterialButton(this);
         button.setText(textId);
-        // Define width and height layout parameters (wrap content)
-        button.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        params.bottomMargin = dp(12);
+        button.setLayoutParams(params);
+        button.setAllCaps(false);
+        button.setCornerRadius(dp(18));
+        int primaryContainer = getDynamicColor(this, com.google.android.material.R.attr.colorPrimaryContainer);
+        int onPrimaryContainer = getDynamicColor(this, com.google.android.material.R.attr.colorOnPrimaryContainer);
+        int primary = getDynamicColor(this, com.google.android.material.R.attr.colorOnPrimary);
+        button.setBackgroundTintList(ColorStateList.valueOf(primaryContainer));
+        button.setTextColor(onPrimaryContainer);
+        button.setRippleColor(ColorStateList.valueOf(primary));
+        button.setStrokeWidth(0);
+        button.setOnClickListener(onClickListener);
+        container.addView(button);
+    }
+
+    private LinearLayout createCardContentLayout() {
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
-        // Apply larger padding for better touch targets and accessibility
-        button.setPadding(32, 16, 32, 16); // Larger padding for accessibility
-        // Set corner radius for a modern, rounded look
-        button.setCornerRadius(24); // Rounded corners for modern look
-        // Set subtle border width
-        button.setStrokeWidth(2); // Subtle border
-        // Apply accent border color dynamically based on theme's secondary color
-        button.setStrokeColor(ColorStateList.valueOf(getDynamicColor(this, com.google.android.material.R.attr.colorSecondary))); // Accent border
-        // Apply text color dynamically based on theme's onSecondary color
-        button.setTextColor(getDynamicColor(this, com.google.android.material.R.attr.colorOnSecondary)); // Text color
-        // Set the provided click listener to handle actions
-        button.setOnClickListener(onClickListener);
-        // Add the fully styled button into the provided toolbar layout
-        toolbar.addView(button); // Add button to toolbar
+        return content;
+    }
+
+    private MaterialCardView createSurfaceCard() {
+        MaterialCardView card = new MaterialCardView(this, null, R.style.Widget_Material3_CardView_Filled);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        params.bottomMargin = dp(20);
+        card.setLayoutParams(params);
+        card.setCardBackgroundColor(getDynamicColor(this, com.google.android.material.R.attr.colorSurface));
+        card.setStrokeColor(getDynamicColor(this, com.google.android.material.R.attr.colorOutline));
+        card.setStrokeWidth(dp(1));
+        card.setRadius(dp(24));
+        card.setCardElevation(0f);
+        card.setUseCompatPadding(false);
+        card.setContentPadding(dp(24), dp(28), dp(24), dp(24));
+        return card;
+    }
+
+    private MaterialTextView createHeadlineTextView(int textRes) {
+        MaterialTextView textView = new MaterialTextView(this);
+        textView.setText(textRes);
+        textView.setTextAppearance(R.style.TextAppearance_Material3_TitleLarge);
+        textView.setTextColor(getDynamicColor(this, com.google.android.material.R.attr.colorOnSurface));
+        return textView;
+    }
+
+    private MaterialTextView createBodyTextView(String text) {
+        MaterialTextView textView = new MaterialTextView(this);
+        textView.setText(text);
+        textView.setTextAppearance(R.style.TextAppearance_Material3_BodyMedium);
+        textView.setTextColor(getDynamicColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        params.topMargin = dp(8);
+        textView.setLayoutParams(params);
+        return textView;
+    }
+
+    private MaterialTextView createBodyTextView(int textRes) {
+        return createBodyTextView(getString(textRes));
+    }
+
+    private int dp(int value) {
+        float density = getResources().getDisplayMetrics().density;
+        return Math.round(value * density);
     }
 
     // Abstract listener to handle custom back press behavior
