@@ -3,6 +3,7 @@ package xzr.konabess;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.View;
@@ -104,18 +105,34 @@ public class MainActivity extends AppCompatActivity {
         rootScroll.addView(mainView);
         setContentView(rootScroll);
 
+        MaterialCardView toolbarCard = new MaterialCardView(this, null, R.style.Widget_Material3_CardView_Filled);
+        LinearLayout.LayoutParams toolbarCardParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        toolbarCardParams.bottomMargin = dp(28);
+        toolbarCard.setLayoutParams(toolbarCardParams);
+        toolbarCard.setRadius(dp(32));
+        toolbarCard.setCardElevation(0f);
+        toolbarCard.setUseCompatPadding(false);
+        toolbarCard.setPreventCornerOverlap(false);
+        toolbarCard.setCardBackgroundColor(getDynamicColor(this, com.google.android.material.R.attr.colorSurfaceVariant));
+        toolbarCard.setStrokeWidth(0);
+
         MaterialToolbar toolbar = new MaterialToolbar(this);
         toolbar.setTitle(getString(R.string.app_name));
         toolbar.setSubtitle(R.string.toolbar_subtitle);
-        toolbar.setBackgroundColor(getDynamicColor(this, com.google.android.material.R.attr.colorSurfaceVariant));
+        toolbar.setBackgroundColor(Color.TRANSPARENT);
         int onSurfaceColor = getDynamicColor(this, com.google.android.material.R.attr.colorOnSurface);
         int onSurfaceVariant = getDynamicColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant);
         toolbar.setTitleTextColor(onSurfaceColor);
         toolbar.setSubtitleTextColor(onSurfaceVariant);
         toolbar.setContentInsetStartWithNavigation(0);
         toolbar.setElevation(0f);
-        toolbar.setPadding(dp(16), dp(12), dp(16), dp(12));
-        mainView.addView(toolbar);
+        toolbar.setPadding(dp(20), dp(18), dp(20), dp(18));
+
+        toolbarCard.addView(toolbar);
+        mainView.addView(toolbarCard);
 
         MaterialCardView heroCard = createSurfaceCard();
         LinearLayout heroContent = createCardContentLayout();
