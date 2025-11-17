@@ -9,7 +9,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
-import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
@@ -19,7 +18,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.color.MaterialColors;
@@ -628,10 +626,24 @@ public class GpuTableEditor {
 
         // Wrap the RecyclerView in a dynamic MaterialCardView
         MaterialCardView cardView = DialogUtil.createDynamicCard(activity, recyclerView);
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        cardParams.topMargin = dp(activity, 8);
+        cardView.setLayoutParams(cardParams);
+
+        LinearLayout section = createSectionLayout(activity);
+        section.addView(createSectionTitle(activity, R.string.gpu_level_list_title));
+        String binName = KonaBessStr.convertBins(bins.get(id).id, activity);
+        section.addView(createSectionBody(activity,
+                activity.getString(R.string.gpu_level_list_body, binName)
+        ));
+        section.addView(cardView);
 
         // Replace previous page content with the new card view
         page.removeAllViews();
-        page.addView(cardView);
+        page.addView(section);
     }
 
     /**
@@ -897,6 +909,12 @@ public class GpuTableEditor {
 
         // Wrap RecyclerView in a MaterialCardView for styling
         MaterialCardView cardView = DialogUtil.createDynamicCard(activity, recyclerView);
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        cardParams.topMargin = dp(activity, 8);
+        cardView.setLayoutParams(cardParams);
 
         // Replace any existing views and display the card
         page.removeAllViews();
@@ -946,10 +964,21 @@ public class GpuTableEditor {
 
         // Wrap the RecyclerView in a styled MaterialCardView
         MaterialCardView cardView = DialogUtil.createDynamicCard(activity, recyclerView);
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        cardParams.topMargin = dp(activity, 8);
+        cardView.setLayoutParams(cardParams);
 
-        // Replace existing page content with the card view
+        LinearLayout section = createSectionLayout(activity);
+        section.addView(createSectionTitle(activity, R.string.gpu_bin_list_title));
+        section.addView(createSectionBody(activity, R.string.gpu_bin_list_body));
+        section.addView(cardView);
+
+        // Replace existing page content with the refreshed section
         page.removeAllViews();
-        page.addView(cardView);
+        page.addView(section);
     }
 
     /**
@@ -959,100 +988,71 @@ public class GpuTableEditor {
      * @return A View containing the toolbar and horizontal button scroll.
      */
     private static View generateToolBar(AppCompatActivity activity) {
-        // Create and configure the top app bar using MaterialToolbar
-        MaterialToolbar toolbar = new MaterialToolbar(activity);
-        toolbar.setTitle(R.string.save_freq_table);  // Set the title text from resources
-        toolbar.setTitleTextColor(MaterialColors.getColor(
-                activity,
-                com.google.android.material.R.attr.colorOnPrimary, // Dynamic text color attribute
-                Color.WHITE                                       // Fallback color
-        ));
+        MaterialCardView card = createEditorCard(activity);
 
-        // Apply a dynamic background color based on the current Material theme primary color
-        int toolbarColor = DialogUtil.getDynamicColor(
-                activity,
-                R.attr.colorPrimary
+        LinearLayout content = new LinearLayout(activity);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        content.setPadding(dp(activity, 24), dp(activity, 20), dp(activity, 24), dp(activity, 20));
+        card.addView(content);
+
+        MaterialTextView title = new MaterialTextView(activity);
+        title.setText(R.string.gpu_editor_header_title);
+        title.setTextAppearance(R.style.TextAppearance_Material3_TitleLarge);
+        title.setTextColor(DialogUtil.getDynamicColor(activity, com.google.android.material.R.attr.colorOnSurface));
+        content.addView(title);
+
+        MaterialTextView body = new MaterialTextView(activity);
+        body.setText(R.string.gpu_editor_header_body);
+        body.setTextAppearance(R.style.TextAppearance_Material3_BodyMedium);
+        body.setTextColor(DialogUtil.getDynamicColor(activity, com.google.android.material.R.attr.colorOnSurfaceVariant));
+        LinearLayout.LayoutParams bodyParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        toolbar.setBackgroundColor(toolbarColor);
+        bodyParams.topMargin = dp(activity, 8);
+        body.setLayoutParams(bodyParams);
+        content.addView(body);
 
-        // Define layout parameters for full-width and wrap-content height
-        toolbar.setLayoutParams(new LinearLayout.LayoutParams(
+        LinearLayout buttonRow = new LinearLayout(activity);
+        buttonRow.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-        ));
-        toolbar.setPadding(16, 16, 16, 16);  // Add padding inside the toolbar
+        );
+        rowParams.topMargin = dp(activity, 16);
+        buttonRow.setLayoutParams(rowParams);
+        content.addView(buttonRow);
 
-        // Create a HorizontalScrollView to host action buttons without crowding the toolbar
-        HorizontalScrollView scrollView = new HorizontalScrollView(activity);
-        scrollView.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        ));
-
-        // Inside the scroll view, use a horizontal LinearLayout to arrange buttons side by side
-        LinearLayout buttonContainer = new LinearLayout(activity);
-        buttonContainer.setOrientation(LinearLayout.HORIZONTAL);
-        buttonContainer.setLayoutParams(new LinearLayout.LayoutParams(
+        MaterialButton saveButton = new MaterialButton(activity);
+        saveButton.setText(R.string.save_freq_table);
+        saveButton.setAllCaps(false);
+        LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-        ));
-        scrollView.addView(buttonContainer); // Add the button container to the scroll view
-
-        // Create an outlined MaterialButton for the "Save" action
-        MaterialButton button = new MaterialButton(
-                activity,
-                null,
-                com.google.android.material.R.attr.materialButtonOutlinedStyle
         );
-        button.setText(R.string.save_freq_table);  // Button label text
-        button.setPadding(16, 8, 16, 8);          // Internal padding for touch comfort
-        button.setCornerRadius(16);               // Rounded corners for a polished look
-        button.setStrokeWidth(2);                 // Outline border width
-
-        // Fetch dynamic colors for the button to match the Material color scheme
-        int buttonBackground = DialogUtil.getDynamicColor(
-                activity,
-                com.google.android.material.R.attr.colorPrimaryContainer
-        );
-        int buttonTextColor = DialogUtil.getDynamicColor(
-                activity,
-                com.google.android.material.R.attr.colorOnPrimaryContainer
-        );
-        int buttonStrokeColor = DialogUtil.getDynamicColor(
-                activity,
-                R.attr.colorPrimary
-        );
-        button.setBackgroundTintList(ColorStateList.valueOf(buttonBackground)); // Fill color
-        button.setTextColor(buttonTextColor);                                   // Text color
-        button.setStrokeColor(ColorStateList.valueOf(buttonStrokeColor));       // Border color
-
-        // Set up the click listener: attempt to save the DTS file and notify the user
-        button.setOnClickListener(v -> {
+        saveButton.setLayoutParams(saveParams);
+        saveButton.setCornerRadius(dp(activity, 16));
+        int primary = DialogUtil.getDynamicColor(activity, com.google.android.material.R.attr.colorPrimaryContainer);
+        int onPrimary = DialogUtil.getDynamicColor(activity, com.google.android.material.R.attr.colorOnPrimaryContainer);
+        saveButton.setBackgroundTintList(ColorStateList.valueOf(primary));
+        saveButton.setTextColor(onPrimary);
+        saveButton.setRippleColor(ColorStateList.valueOf(MaterialColors.layer(primary, Color.WHITE, 0.1f)));
+        saveButton.setOnClickListener(v -> {
             try {
-                writeOut(activity);  // Write changes back to the DTS file
+                writeOut(activity);
                 Toast.makeText(activity, R.string.save_success, Toast.LENGTH_SHORT).show();
             } catch (Exception e) {
-                // Log the error and show an error dialog if saving fails
                 System.out.println(e.getMessage() + e.getCause());
                 DialogUtil.showError(activity, R.string.save_failed);
             }
         });
+        buttonRow.addView(saveButton);
 
-        // Add the configured save button into the horizontal button container
-        buttonContainer.addView(button);
-
-        // Wrap the toolbar and scrollable button row into a vertical LinearLayout
-        LinearLayout wrapperLayout = new LinearLayout(activity);
-        wrapperLayout.setOrientation(LinearLayout.VERTICAL);
-        wrapperLayout.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        ));
-        wrapperLayout.addView(toolbar);     // Place the toolbar at the top
-        wrapperLayout.addView(scrollView);  // Place the buttons directly below
-
-        // Return the assembled view hierarchy
-        return wrapperLayout;
+        return card;
     }
 
     /**
@@ -1072,32 +1072,56 @@ public class GpuTableEditor {
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            // Create a MaterialCardView for each item view
             MaterialCardView cardView = new MaterialCardView(context);
-            cardView.setCardElevation(6f);
-            cardView.setStrokeWidth(2);
-            // Apply dynamic card background and border colors
-            int colorPrimary = DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorPrimaryContainer);
-            int strokeColor = DialogUtil.getDynamicColor(context, R.attr.colorPrimary);
-            cardView.setCardBackgroundColor(colorPrimary);
-            cardView.setStrokeColor(strokeColor);
+            RecyclerView.LayoutParams params = new RecyclerView.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+            params.topMargin = dp(context, 6);
+            params.bottomMargin = dp(context, 6);
+            cardView.setLayoutParams(params);
+            cardView.setRadius(dp(context, 18));
+            cardView.setCardElevation(0f);
+            cardView.setStrokeWidth(0);
+            cardView.setCardBackgroundColor(DialogUtil.getDynamicColor(
+                    context,
+                    com.google.android.material.R.attr.colorSurfaceVariant
+            ));
 
-            // Create a MaterialTextView inside the card for item text
-            MaterialTextView textView = new MaterialTextView(context);
-            textView.setPadding(32, 24, 32, 24);
-            textView.setTextSize(16);
-            textView.setTextColor(DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorOnSurface));
+            LinearLayout content = new LinearLayout(context);
+            content.setOrientation(LinearLayout.VERTICAL);
+            content.setPadding(dp(context, 20), dp(context, 16), dp(context, 20), dp(context, 16));
+            cardView.addView(content);
 
-            cardView.addView(textView);
-            return new ViewHolder(cardView, textView);
+            MaterialTextView titleView = new MaterialTextView(context);
+            titleView.setTextAppearance(R.style.TextAppearance_Material3_TitleMedium);
+            titleView.setTextColor(DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorOnSurface));
+            content.addView(titleView);
+
+            MaterialTextView subtitleView = new MaterialTextView(context);
+            subtitleView.setTextAppearance(R.style.TextAppearance_Material3_BodySmall);
+            subtitleView.setTextColor(DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorOnSurfaceVariant));
+            LinearLayout.LayoutParams subtitleParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            subtitleParams.topMargin = dp(context, 2);
+            subtitleView.setLayoutParams(subtitleParams);
+            content.addView(subtitleView);
+
+            return new ViewHolder(cardView, titleView, subtitleView);
         }
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            // Bind title and subtitle into the text view
             ParamAdapter.item item = items.get(position);
-            holder.textView.setText(item.title + "\n" + item.subtitle);
-            // Forward click events to the listener
+            holder.titleView.setText(item.title);
+            if (item.subtitle == null || item.subtitle.isEmpty()) {
+                holder.subtitleView.setVisibility(View.GONE);
+            } else {
+                holder.subtitleView.setVisibility(View.VISIBLE);
+                holder.subtitleView.setText(item.subtitle);
+            }
             holder.itemView.setOnClickListener(v -> listener.onItemClick(position));
         }
 
@@ -1121,21 +1145,78 @@ public class GpuTableEditor {
          * </p>
          */
         static class ViewHolder extends RecyclerView.ViewHolder {
-            // Reference to the MaterialTextView displaying the item's title and subtitle
-            MaterialTextView textView;
+            final MaterialTextView titleView;
+            final MaterialTextView subtitleView;
 
-            /**
-             * Constructor for the ViewHolder.
-             *
-             * @param itemView The root view of the RecyclerView item (a MaterialCardView).
-             * @param textView The MaterialTextView inside the card used to show text.
-             */
-            public ViewHolder(@NonNull View itemView, MaterialTextView textView) {
+            public ViewHolder(@NonNull View itemView,
+                              MaterialTextView titleView,
+                              MaterialTextView subtitleView) {
                 super(itemView);
-                // Store the passed-in TextView for quick access in onBindViewHolder
-                this.textView = textView;
+                this.titleView = titleView;
+                this.subtitleView = subtitleView;
             }
         }
+    }
+
+    private static LinearLayout createSectionLayout(Context context) {
+        LinearLayout layout = new LinearLayout(context);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        params.topMargin = dp(context, 12);
+        layout.setLayoutParams(params);
+        return layout;
+    }
+
+    private static MaterialTextView createSectionTitle(Context context, int textRes) {
+        MaterialTextView title = new MaterialTextView(context);
+        title.setText(textRes);
+        title.setTextAppearance(R.style.TextAppearance_Material3_TitleMedium);
+        title.setTextColor(DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorOnSurface));
+        return title;
+    }
+
+    private static MaterialTextView createSectionBody(Context context, int textRes) {
+        return createSectionBody(context, context.getString(textRes));
+    }
+
+    private static MaterialTextView createSectionBody(Context context, CharSequence text) {
+        MaterialTextView body = new MaterialTextView(context);
+        body.setText(text);
+        body.setTextAppearance(R.style.TextAppearance_Material3_BodyMedium);
+        body.setTextColor(DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorOnSurfaceVariant));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        params.topMargin = dp(context, 4);
+        body.setLayoutParams(params);
+        return body;
+    }
+
+    private static MaterialCardView createEditorCard(Context context) {
+        MaterialCardView card = new MaterialCardView(context);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        params.bottomMargin = dp(context, 12);
+        card.setLayoutParams(params);
+        card.setCardBackgroundColor(DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorSurface));
+        card.setStrokeColor(DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorOutline));
+        card.setStrokeWidth(1);
+        card.setRadius(dp(context, 24));
+        card.setCardElevation(0f);
+        card.setUseCompatPadding(false);
+        card.setPreventCornerOverlap(false);
+        return card;
+    }
+
+    private static int dp(Context context, int value) {
+        float density = context.getResources().getDisplayMetrics().density;
+        return Math.round(value * density);
     }
 
     /**
@@ -1165,42 +1246,57 @@ public class GpuTableEditor {
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            // Create a MaterialCardView to wrap each bin item
             MaterialCardView cardView = new MaterialCardView(context);
-            cardView.setCardElevation(6f);      // Elevation for shadow effect
-            cardView.setStrokeWidth(2);         // Border width
-
-            // Dynamically obtain colors from the theme
-            int colorPrimary = DialogUtil.getDynamicColor(
-                    context,
-                    com.google.android.material.R.attr.colorPrimaryContainer
+            RecyclerView.LayoutParams params = new RecyclerView.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
             );
-            int strokeColor = DialogUtil.getDynamicColor(
+            params.topMargin = dp(context, 6);
+            params.bottomMargin = dp(context, 6);
+            cardView.setLayoutParams(params);
+            cardView.setRadius(dp(context, 18));
+            cardView.setCardElevation(0f);
+            cardView.setStrokeWidth(0);
+            cardView.setCardBackgroundColor(DialogUtil.getDynamicColor(
                     context,
-                    R.attr.colorPrimary
-            );
-            // Apply background and border colors
-            cardView.setCardBackgroundColor(colorPrimary);
-            cardView.setStrokeColor(strokeColor);
-
-            // Create a text view to show the bin title
-            MaterialTextView textView = new MaterialTextView(context);
-            textView.setPadding(32, 24, 32, 24);  // Padding inside card
-            textView.setTextSize(16);             // Text size in SP
-            textView.setTextColor(DialogUtil.getDynamicColor(
-                    context,
-                    com.google.android.material.R.attr.colorOnSurface
+                    com.google.android.material.R.attr.colorSurfaceVariant
             ));
-            cardView.addView(textView);           // Add text view to card
 
-            return new ViewHolder(cardView, textView);
+            LinearLayout content = new LinearLayout(context);
+            content.setOrientation(LinearLayout.VERTICAL);
+            content.setPadding(dp(context, 20), dp(context, 16), dp(context, 20), dp(context, 16));
+            cardView.addView(content);
+
+            MaterialTextView titleView = new MaterialTextView(context);
+            titleView.setTextAppearance(R.style.TextAppearance_Material3_TitleMedium);
+            titleView.setTextColor(DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorOnSurface));
+            content.addView(titleView);
+
+            MaterialTextView subtitleView = new MaterialTextView(context);
+            subtitleView.setTextAppearance(R.style.TextAppearance_Material3_BodySmall);
+            subtitleView.setTextColor(DialogUtil.getDynamicColor(context, com.google.android.material.R.attr.colorOnSurfaceVariant));
+            LinearLayout.LayoutParams subtitleParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            subtitleParams.topMargin = dp(context, 2);
+            subtitleView.setLayoutParams(subtitleParams);
+            content.addView(subtitleView);
+
+            return new ViewHolder(cardView, titleView, subtitleView);
         }
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             // Bind the title for the bin at this position
             ParamAdapter.item item = items.get(position);
-            holder.textView.setText(item.title);
+            holder.titleView.setText(item.title);
+            if (item.subtitle == null || item.subtitle.isEmpty()) {
+                holder.subtitleView.setVisibility(View.GONE);
+            } else {
+                holder.subtitleView.setVisibility(View.VISIBLE);
+                holder.subtitleView.setText(item.subtitle);
+            }
 
             // Forward click events to the provided listener
             holder.itemView.setOnClickListener(v -> listener.onItemClick(position));
@@ -1223,17 +1319,15 @@ public class GpuTableEditor {
          * ViewHolder holds references to the card view and its text.
          */
         static class ViewHolder extends RecyclerView.ViewHolder {
-            MaterialTextView textView;
+            final MaterialTextView titleView;
+            final MaterialTextView subtitleView;
 
-            /**
-             * Constructor for ViewHolder.
-             *
-             * @param itemView The root card view.
-             * @param textView The text view displaying the bin title.
-             */
-            public ViewHolder(@NonNull View itemView, MaterialTextView textView) {
+            public ViewHolder(@NonNull View itemView,
+                              MaterialTextView titleView,
+                              MaterialTextView subtitleView) {
                 super(itemView);
-                this.textView = textView;
+                this.titleView = titleView;
+                this.subtitleView = subtitleView;
             }
         }
     }
