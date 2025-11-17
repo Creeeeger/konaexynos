@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -16,6 +17,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.shape.MaterialShapeDrawable;
+import com.google.android.material.shape.ShapeAppearanceModel;
 import com.google.android.material.textview.MaterialTextView;
 
 import xzr.konabess.R;
@@ -142,7 +145,11 @@ public class DialogUtil {
         if (message != null) builder.setMessage(message);
         if (view != null) builder.setView(view);
 
-        return builder.create();
+        builder.setBackground(createDialogBackground(context));
+
+        AlertDialog dialog = builder.create();
+        dialog.setOnShowListener(d -> styleDialogMessage(dialog, context));
+        return dialog;
     }
 
     // --- MATERIAL YOU COMPONENT HELPERS ---
@@ -191,6 +198,29 @@ public class DialogUtil {
         scrollView.addView(textView);
 
         return createDynamicCard(context, scrollView);
+    }
+
+    private static void styleDialogMessage(AlertDialog dialog, Context context) {
+        TextView messageView = dialog.findViewById(android.R.id.message);
+        if (messageView != null) {
+            int textColor = getDynamicColor(context, com.google.android.material.R.attr.colorOnSurfaceVariant);
+            messageView.setTextColor(textColor);
+        }
+    }
+
+    @NonNull
+    private static MaterialShapeDrawable createDialogBackground(Context context) {
+        float radius = dp(context, 28);
+        ShapeAppearanceModel shapeAppearanceModel = ShapeAppearanceModel.builder()
+                .setAllCornerSizes(radius)
+                .build();
+
+        MaterialShapeDrawable drawable = new MaterialShapeDrawable(shapeAppearanceModel);
+        int surface = getDynamicColor(context, com.google.android.material.R.attr.colorSurface);
+        int outlineColor = getDynamicColor(context, com.google.android.material.R.attr.colorOutlineVariant);
+        drawable.setFillColor(ColorStateList.valueOf(surface));
+        drawable.setStroke(1f, outlineColor);
+        return drawable;
     }
 
     private static int dp(Context context, int value) {
