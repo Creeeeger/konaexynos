@@ -445,13 +445,7 @@ public class GpuTableEditor {
      * @return true if under the threshold; false otherwise.
      */
     public static boolean canAddNewLevel(int binID, Context context) {
-        if (bins.get(binID).levels.size() <= 10) {
-            return true;
-        } else {
-            // Notify user that no more levels can be added
-            Toast.makeText(context, R.string.unable_add_more, Toast.LENGTH_SHORT).show();
-            return false;
-        }
+        return true;
     }
 
     /**
@@ -988,16 +982,12 @@ public class GpuTableEditor {
      * @return A View containing the toolbar and horizontal button scroll.
      */
     private static View generateToolBar(AppCompatActivity activity) {
-        MaterialCardView card = createEditorCard(activity);
-
         LinearLayout content = new LinearLayout(activity);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
-        content.setPadding(dp(activity, 24), dp(activity, 20), dp(activity, 24), dp(activity, 20));
-        card.addView(content);
 
         MaterialTextView title = new MaterialTextView(activity);
         title.setText(R.string.gpu_editor_header_title);
@@ -1052,7 +1042,7 @@ public class GpuTableEditor {
         });
         buttonRow.addView(saveButton);
 
-        return card;
+        return content;
     }
 
     /**
@@ -1398,12 +1388,34 @@ public class GpuTableEditor {
                 waiting.dismiss();              // Hide the wait dialog
                 showedView.removeAllViews();   // Clear existing content
 
+                MaterialCardView editorSurface = createEditorCard(activity);
+                LinearLayout editorContent = new LinearLayout(activity);
+                editorContent.setOrientation(LinearLayout.VERTICAL);
+                editorContent.setLayoutParams(new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                ));
+                editorContent.setPadding(
+                        dp(activity, 24),
+                        dp(activity, 20),
+                        dp(activity, 24),
+                        dp(activity, 24)
+                );
+                editorSurface.addView(editorContent);
+
                 // Add the save toolbar at the top
-                showedView.addView(generateToolBar(activity));
+                editorContent.addView(generateToolBar(activity));
 
                 // Prepare page container for bins
                 page = new LinearLayout(activity);
                 page.setOrientation(LinearLayout.VERTICAL);
+                LinearLayout.LayoutParams pageParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                );
+                pageParams.topMargin = dp(activity, 20);
+                page.setLayoutParams(pageParams);
+                editorContent.addView(page);
 
                 try {
                     // Generate and display the list of bins
@@ -1412,8 +1424,7 @@ public class GpuTableEditor {
                     DialogUtil.showError(activity, "Failed to generate bins");
                 }
 
-                // Add the bins page below the toolbar
-                showedView.addView(page);
+                showedView.addView(editorSurface);
             });
         }
     }
