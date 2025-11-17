@@ -45,4 +45,17 @@
     <string name="e9820">Exynos 9820</string>
     <string name="e9825">Exynos 9825</string>
     <string name="e990">Exynos 990</string>
+    <string name="toolbar_subtitle">Advanced tuning console</string>
+    <string name="chipset_card_title">Chipset overview</string>
+    <string name="chipset_card_body">You are currently preparing configuration files for %1$s.</string>
+    <string name="chipset_unknown_hint">Chipset information becomes available after KonaExynos finishes extracting your boot image.</string>
+    <string name="actions_card_title">Quick actions</string>
+    <string name="actions_card_body">Kick off the guided workflows below. You can safely rerun them at any time.</string>
+    <string name="workspace_title">Workspace</string>
+    <string name="gpu_editor_header_title">GPU frequency tables</string>
+    <string name="gpu_editor_header_body">Review and save your GPU DVFS bins after tuning the entries below.</string>
+    <string name="gpu_bin_list_title">Choose a bin</string>
+    <string name="gpu_bin_list_body">Select the profile you want to tune before editing the individual levels.</string>
+    <string name="gpu_level_list_title">Frequency levels</string>
+    <string name="gpu_level_list_body">Tap a frequency inside %1$s to edit it or long press to remove it.</string>
 </resources>
