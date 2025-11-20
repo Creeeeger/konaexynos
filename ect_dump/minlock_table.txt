@@ -1,0 +1,29 @@
+[ECT] : Minlock Information
+	[PARSER VERSION] : 1
+	[VERSION] : 0.0 
+	[NUM OF DOMAIN] : 1
+		[DOMAIN NAME] : dvfs_cpucl2
+			[Frequency] : (MAIN)3016000, (SUB)1352000
+			[Frequency] : (MAIN)2912000, (SUB)1352000
+			[Frequency] : (MAIN)2808000, (SUB)1352000
+			[Frequency] : (MAIN)2730000, (SUB)1352000
+			[Frequency] : (MAIN)2600000, (SUB)1352000
+			[Frequency] : (MAIN)2530000, (SUB)1352000
+			[Frequency] : (MAIN)2470000, (SUB)1352000
+			[Frequency] : (MAIN)2340000, (SUB)1352000
+			[Frequency] : (MAIN)2236000, (SUB)1352000
+			[Frequency] : (MAIN)2080000, (SUB)1014000
+			[Frequency] : (MAIN)1976000, (SUB)1014000
+			[Frequency] : (MAIN)1820000, (SUB)1014000
+			[Frequency] : (MAIN)1664000, (SUB)845000
+			[Frequency] : (MAIN)1560000, (SUB)845000
+			[Frequency] : (MAIN)1456000, (SUB)845000
+			[Frequency] : (MAIN)1378000, (SUB)845000
+			[Frequency] : (MAIN)1248000, (SUB)676000
+			[Frequency] : (MAIN)1144000, (SUB)676000
+			[Frequency] : (MAIN)1040000, (SUB)421000
+			[Frequency] : (MAIN)936000, (SUB)421000
+			[Frequency] : (MAIN)819000, (SUB)421000
+			[Frequency] : (MAIN)728000, (SUB)421000
+			[Frequency] : (MAIN)624000, (SUB)421000
+			[Frequency] : (MAIN)520000, (SUB)421000

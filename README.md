@@ -4,14 +4,13 @@
 
 - **Exynos 9820**
 - **Exynos 9825**
-- For new devices: _study the code yourself and add support_.
+- **Exynos 9810**
 
 ---
 
 ## What is this?
 
-A simple Android app that lets you **edit custom GPU frequency tables without recompiling the kernel
-**.
+A simple Android app that lets you **edit custom GPU frequency tables without recompiling the kernel**.
 
 ---
 
@@ -52,53 +51,46 @@ A simple Android app that lets you **edit custom GPU frequency tables without re
 
 ---
 
-## Limitations & Notes
+## PLL table example (PLL_G3D)
 
-- **Some Samsung kernels may block this mod**.
-- Kernel logs reveal a **predefined table**—frequencies that actually work:
-
-```
-6,908,984754,-;dvfs_type : dvfs_g3d - id : a
-6,909,984761,-;  num_of_lv      : 12
-6,910,984769,-;  num_of_members : 1
-6,911,984778,-;  DVFS CMU addr:0x1a240140
-6,912,984787,-;  lv : [ 702000], volt = 681250 uV 
-6,913,984797,-;  lv : [ 676000], volt = 668750 uV
-6,914,984807,-;  lv : [ 650000], volt = 662500 uV
-6,915,984816,-;  lv : [ 598000], volt = 656250 uV
-6,916,984826,-;  lv : [ 572000], volt = 650000 uV
-6,917,984835,-;  lv : [ 433000], volt = 625000 uV
-6,918,984845,-;  lv : [ 377000], volt = 612500 uV
-6,919,984854,-;  lv : [ 325000], volt = 587500 uV
-6,920,984864,-;  lv : [ 260000], volt = 568750 uV 
-6,921,984874,-;  lv : [ 200000], volt = 568750 uV
-6,922,984883,-;  lv : [ 156000], volt = 543750 uV
-6,923,984892,-;  lv : [ 100000], volt = 537500 uV
+```text
+[PLL NAME] : PLL_G3D
+[PLL TYPE] : 14160
+[NUM OF FREQUENCY] : 13
+    [FREQUENCY] : 754000000  [P] : 4  [M] : 116  [S] : 0  [K] : 0
+    [FREQUENCY] : 702000000  [P] : 4  [M] : 108  [S] : 0  [K] : 0
+    [FREQUENCY] : 676000000  [P] : 4  [M] : 104  [S] : 0  [K] : 0
+    [FREQUENCY] : 650000000  [P] : 4  [M] : 100  [S] : 0  [K] : 0
+    [FREQUENCY] : 598000000  [P] : 4  [M] : 184  [S] : 1  [K] : 0
+    [FREQUENCY] : 572000000  [P] : 4  [M] : 176  [S] : 1  [K] : 0
+    [FREQUENCY] : 432250000  [P] : 4  [M] : 133  [S] : 1  [K] : 0
+    [FREQUENCY] : 377000000  [P] : 4  [M] : 116  [S] : 1  [K] : 0
+    [FREQUENCY] : 325000000  [P] : 4  [M] : 100  [S] : 1  [K] : 0
+    [FREQUENCY] : 260000000  [P] : 4  [M] : 160  [S] : 2  [K] : 0
+    [FREQUENCY] : 199875000  [P] : 4  [M] : 123  [S] : 2  [K] : 0
+    [FREQUENCY] : 156000000  [P] : 4  [M] : 96   [S] : 2  [K] : 0
+    [FREQUENCY] : 99937000   [P] : 4  [M] : 123  [S] : 3  [K] : 0
 ```
 
-- **Only these frequencies are supported** (enforced in SRAM).
-- If you create a custom table, the voltages are still hard-linked to these frequency steps.
-- _Tricking_ this system may require advanced kernel
-  work—see [this commit](https://github.com/Creeeeger/Galaxy_S10_5G_Kernel/commit/da293bfb95effcfcba1900a4a3fb15a95b471ef9#diff-830b66ed3916a0a50cb5b270b4a2b5d1ace91f93ccac5534b69c041558aba923).
+### Interpreting the parameters
 
----
+For `K=0` (integer-N), the typical relationship is:
 
-## Issues & Contributions
+- **VCO**: `Fvco = (Fref * M) / P`
+- **Output**: `Fout = Fvco / (2^S)`
 
-- Found a bug? **[Open an issue](../../issues)**
-- Want to help? **[Send a pull request](../../pulls)**
-- Contributions welcome!
+Where:
 
----
-
-## TODO
-
-- [ ] Automatically sort frequencies when adding new ones.
-
----
-
-_You’re welcome to fork, hack, and contribute!_
+- `P` = pre-divider  
+- `M` = feedback multiplier  
+- `S` = post-divider exponent (divide by 2^S)  
+- `K` = fractional part (unused here because `K=0`)
 
 
-- for 9830 (990) the table is stored in the dtb image
-- for 9825 (of F62) its stored in the dtbo image
+From the table values, the **reference clock** resolves cleanly to:
+
+- **Fref ≈ 26 MHz**
+
+
+## Exynos9820 Kernel
+- After extensive testing and trying i came to the result. In the https://github.com/Creeeeger/9820_kernel kernel are in the forOC folder the 2 files which need to be modded and changed in order to increase clocks
