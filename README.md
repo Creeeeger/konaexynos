@@ -62,130 +62,111 @@ why true GPU overclocking is currently not feasible for the public.
 
 ------------------------------------------------------------------------
 
-## 1. What the Kernel Logs Tell Us
+# Round 2:
 
-Through kernel logging, we can see that the GPU DVFS driver exposes a
-**fixed, predetermined frequency/voltage table**.\
-Only these frequencies are supported by the hardware at runtime:
-
-    702000 kHz – 681250 uV  
-    676000 kHz – 668750 uV  
-    650000 kHz – 662500 uV  
-    598000 kHz – 656250 uV  
-    572000 kHz – 650000 uV  
-    433000 kHz – 625000 uV  
-    377000 kHz – 612500 uV  
-    325000 kHz – 587500 uV  
-    260000 kHz – 568750 uV  
-    200000 kHz – 568750 uV  
-    156000 kHz – 543750 uV  
-    100000 kHz – 537500 uV
-
-These values are **not calculated by the kernel**.\
-They are **injected at boot** from the device's **ECT**, a configuration
-blob loaded by the **bootloader** before the kernel even starts - these values are 
-then just throws around by vclk, acme, lut, cal-if, pq-mos, and how they are all called.
-Yet in the end they all come from the ect.
-
-------------------------------------------------------------------------
-
-## 2. Why Custom Frequency Tables Don't Work
-
-You can patch your kernel to *display* higher custom frequencies in the
-UI.\
-But the ACPM (the microcontroller that actually manages clocks and
-voltages) ignores them.
-
-### Why?
-
-Because the ACPM always maps your requested frequency to the **closest
-valid index in the original ECT table**.
-
-Example:
-
-    Original:
-    702 MHz → index 1
-    676 MHz → index 2
-    650 MHz → index 3
-
-    Custom user-edited table:
-    1000 MHz → index 1 (UI)
-    845 MHz  → index 1 (UI)
-    702 MHz  → index 1
-    676 MHz  → index 2
-    650 MHz  → index 3
-
-The UI might show: \> "GPU is running at 1.0 GHz!"
-
-But the ACPM internally sees: \> "Set index 1 → 702 MHz"
-
-So **actual hardware frequency never exceeds 702 MHz**---no matter what
-custom table you create.
-
-------------------------------------------------------------------------
-
-## 3. Why Not Just Modify the ECT?
-
-Because the ECT is:
-
--   Loaded **only** by the **bootloader**
--   Stored in a region you **cannot edit from the kernel**
--   Not writable from userspace or kernelspace
--   Validated and protected by Samsung's hardware chain-of-trust
-
-Editing the ECT would require:
-
-1.  Exploiting the **bootrom**  🏋🏻‍♀️🏋🏻‍♀️🏋🏻‍♀️🏋🏻‍♀️🏋🏻‍♀️
-2.  Achieving arbitrary write access  🏋🏻‍♀️🏋🏻‍♀️
-3.  Repackaging and injecting a modified ECT during boot 🏋🏻‍♀️
-
-This is: - **Not legally acceptable** - **Not (quickly) realistically
-achievable** - **Not something the kernel can override**
-
-Thus the hardware-enforced GPU frequency limits cannot be changed
-publicly.
-
-------------------------------------------------------------------------
-
-## 4. So Is GPU Tweaking Completely Useless?
-
-No. You can still:
-
--   **Undervolt** to reduce heat and improve efficiency
--   **Underclock** for battery gains
--   **Force higher minimum frequencies** to stabilize performance in
-    games
--   **Fine‑tune DVFS behavior** for smoother workloads
-
-What you *cannot* do: - Truly overclock beyond the **predefined ECT
-maximum**
-- Add new functional frequency steps
-- Exceed the limits loaded by the bootloader
-
-------------------------------------------------------------------------
-
-## 5. Conclusion
-
-True GPU overclocking on these Exynos devices is currently **impossible
-for the public** because:
-
--   The real DVFS table is locked in the **ECT**, not the kernel
--   The ECT is loaded by the **bootloader** and never touched again
--   The ACPM enforces these original frequency indices
--   Kernel-side patches only change the **UI**, not the hardware
-    behavior
-
-The GPU will always fall back to the **highest valid ECT-defined
-frequency**---702 MHz in this example.
-
-------------------------------------------------------------------------
-
-If future bootloader or bootrom exploits appear, modifying the ECT might
-become possible.
-Until then, **GPU frequency limits are effectively hardware‑locked**.
-
-
+# G3D PLL / DVFS tables
 
 ---
-- [x] With this commit, the project has come to an end
 
+## 1) What was discovered
+
+My initial thought was “wrong and correct at the same time”:
+
+- The PLL table is **signed and not directly editable during early init**.
+- However, during initialization it gets **loaded into DRAM**, which *is* accessible later.
+- Since the kernel already has functions to **dump the clock tables** (enable with `debug_fs=y`), it’s possible to extract all clock levels and multipliers from the live system.
+
+---
+
+## 2) PLL table example (PLL_G3D)
+
+Example dump:
+
+```text
+[PLL NAME] : PLL_G3D
+[PLL TYPE] : 14160
+[NUM OF FREQUENCY] : 13
+    [FREQUENCY] : 754000000  [P] : 4  [M] : 116  [S] : 0  [K] : 0
+    [FREQUENCY] : 702000000  [P] : 4  [M] : 108  [S] : 0  [K] : 0
+    [FREQUENCY] : 676000000  [P] : 4  [M] : 104  [S] : 0  [K] : 0
+    [FREQUENCY] : 650000000  [P] : 4  [M] : 100  [S] : 0  [K] : 0
+    [FREQUENCY] : 598000000  [P] : 4  [M] : 184  [S] : 1  [K] : 0
+    [FREQUENCY] : 572000000  [P] : 4  [M] : 176  [S] : 1  [K] : 0
+    [FREQUENCY] : 432250000  [P] : 4  [M] : 133  [S] : 1  [K] : 0
+    [FREQUENCY] : 377000000  [P] : 4  [M] : 116  [S] : 1  [K] : 0
+    [FREQUENCY] : 325000000  [P] : 4  [M] : 100  [S] : 1  [K] : 0
+    [FREQUENCY] : 260000000  [P] : 4  [M] : 160  [S] : 2  [K] : 0
+    [FREQUENCY] : 199875000  [P] : 4  [M] : 123  [S] : 2  [K] : 0
+    [FREQUENCY] : 156000000  [P] : 4  [M] : 96   [S] : 2  [K] : 0
+    [FREQUENCY] : 99937000   [P] : 4  [M] : 123  [S] : 3  [K] : 0
+```
+
+### Interpreting the parameters
+
+For `K=0` (integer-N), the typical relationship is:
+
+- **VCO**: `Fvco = (Fref * M) / P`
+- **Output**: `Fout = Fvco / (2^S)`
+
+Where:
+
+- `P` = pre-divider  
+- `M` = feedback multiplier  
+- `S` = post-divider exponent (divide by 2^S)  
+- `K` = fractional part (unused here because `K=0`)
+
+
+From the table values, the **reference clock** resolves cleanly to:
+
+- **Fref ≈ 26 MHz**
+
+(Any tiny mismatch is just rounding of the printed `FREQUENCY` values.)
+
+---
+
+## 3) Why there’s “another level” on the 9825
+
+On the 9825, the ECT PLL table essentially matches the PLL table, but the **DVFS domain table** does **not** include the extra top level.
+
+DVFS dump:
+
+```text
+[DOMAIN NAME] : dvfs_g3d
+[BOOT LEVEL IDX] : NONE
+[RESUME LEVEL IDX] : NONE
+[MAX FREQ] : 0
+[MIN FREQ] : 4294967295
+[NUM OF SFR] : 1
+    [SFR ADDRESS] : 1a240140
+[NUM OF LEVEL] : 12
+    [LEVEL] : 702000(X)
+    [LEVEL] : 676000(X)
+    [LEVEL] : 650000(X)
+    [LEVEL] : 598000(X)
+    [LEVEL] : 572000(X)
+    [LEVEL] : 433000(X)
+    [LEVEL] : 377000(X)
+    [LEVEL] : 325000(X)
+    [LEVEL] : 260000(X)
+    [LEVEL] : 200000(X)
+    [LEVEL] : 156000(X)
+    [LEVEL] : 100000(X)
+```
+
+**Key observation:**  
+The DVFS levels stop at **702 MHz**, even though the PLL table contains a **754 MHz** entry. So the “extra” PLL level exists in the PLL table, but the DVFS policy list doesn’t reference it.
+
+---
+
+## Appendix: quick PLL sanity check
+
+Example row `650000000` with `P=4, M=100, S=0`:
+
+- `Fout = 26 MHz * 100 / (4 * 1) = 650 MHz`
+
+Example row `598000000` with `P=4, M=184, S=1`:
+
+- `Fvco = 26 MHz * 184 / 4 = 1196 MHz`
+- `Fout = 1196 / 2 = 598 MHz`
+
+----

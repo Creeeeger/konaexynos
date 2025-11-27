@@ -1,0 +1,6 @@
+[ECT] : ECT Information
+	[VA] : 0000000020b493d6
+	[SIGN] : PARA
+	[VERSION] : 2005
+	[TOTAL SIZE] : 46888
+	[NUM OF HEADER] : 8

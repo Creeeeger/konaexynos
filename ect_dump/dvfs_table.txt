@@ -1,0 +1,465 @@
+[ECT] : DVFS Information
+	[PARSER VERSION] : 3
+	[VERSION] : 0.00
+	[NUM OF DOMAIN] : 15
+		[DOMAIN NAME] : dvfs_cpucl0
+		[BOOT LEVEL IDX] : NONE
+		[RESUME LEVEL IDX] : NONE
+		[MAX FREQ] : 0
+		[MIN FREQ] : 4294967295
+		[NUM OF SFR] : 3
+			[SFR ADDRESS] : 1d020160
+			[SFR ADDRESS] : 1d021800
+			[SFR ADDRESS] : 1a241828
+		[NUM OF LEVEL] : 19
+			[LEVEL] : 2106000(X)
+			[LEVEL] : 2002000(X)
+			[LEVEL] : 1950000(X)
+			[LEVEL] : 1846000(X)
+			[LEVEL] : 1742000(X)
+			[LEVEL] : 1586000(X)
+			[LEVEL] : 1456000(X)
+			[LEVEL] : 1300000(X)
+			[LEVEL] : 1157000(X)
+			[LEVEL] : 1053000(X)
+			[LEVEL] : 949000(X)
+			[LEVEL] : 806000(X)
+			[LEVEL] : 650000(X)
+			[LEVEL] : 546000(X)
+			[LEVEL] : 442000(X)
+			[LEVEL] : 351000(X)
+			[LEVEL] : 247000(X)
+			[LEVEL] : 182000(X)
+			[LEVEL] : 130000(X)
+				[TABLE]
+				0 1 1 
+				1 1 1 
+				2 1 1 
+				3 1 1 
+				4 1 1 
+				5 1 1 
+				6 1 1 
+				7 1 1 
+				8 0 1 
+				9 0 1 
+				10 0 2 
+				11 0 2 
+				12 0 2 
+				13 0 3 
+				14 0 3 
+				15 0 7 
+				16 0 7 
+				17 0 7 
+				18 0 7 
+		[DOMAIN NAME] : dvfs_cpucl1
+		[BOOT LEVEL IDX] : NONE
+		[RESUME LEVEL IDX] : NONE
+		[MAX FREQ] : 0
+		[MIN FREQ] : 4294967295
+		[NUM OF SFR] : 1
+			[SFR ADDRESS] : 1d030120
+		[NUM OF LEVEL] : 19
+			[LEVEL] : 2400000(X)
+			[LEVEL] : 2314000(X)
+			[LEVEL] : 2210000(X)
+			[LEVEL] : 2106000(X)
+			[LEVEL] : 2002000(X)
+			[LEVEL] : 1898000(X)
+			[LEVEL] : 1794000(X)
+			[LEVEL] : 1690000(X)
+			[LEVEL] : 1586000(X)
+			[LEVEL] : 1508000(X)
+			[LEVEL] : 1404000(X)
+			[LEVEL] : 1222000(X)
+			[LEVEL] : 1066000(X)
+			[LEVEL] : 962000(X)
+			[LEVEL] : 845000(X)
+			[LEVEL] : 754000(X)
+			[LEVEL] : 650000(X)
+			[LEVEL] : 507000(X)
+			[LEVEL] : 377000(X)
+				[TABLE]
+				0 
+				1 
+				2 
+				3 
+				4 
+				5 
+				6 
+				7 
+				8 
+				9 
+				10 
+				11 
+				12 
+				13 
+				14 
+				15 
+				16 
+				17 
+				18 
+		[DOMAIN NAME] : dvfs_cpucl2
+		[BOOT LEVEL IDX] : NONE
+		[RESUME LEVEL IDX] : NONE
+		[MAX FREQ] : 0
+		[MIN FREQ] : 4294967295
+		[NUM OF SFR] : 2
+			[SFR ADDRESS] : 1d120120
+			[SFR ADDRESS] : 1d121800
+		[NUM OF LEVEL] : 24
+			[LEVEL] : 3016000(X)
+			[LEVEL] : 2912000(X)
+			[LEVEL] : 2808000(X)
+			[LEVEL] : 2730000(X)
+			[LEVEL] : 2600000(X)
+			[LEVEL] : 2530000(X)
+			[LEVEL] : 2470000(X)
+			[LEVEL] : 2340000(X)
+			[LEVEL] : 2236000(X)
+			[LEVEL] : 2080000(X)
+			[LEVEL] : 1976000(X)
+			[LEVEL] : 1820000(X)
+			[LEVEL] : 1664000(X)
+			[LEVEL] : 1560000(X)
+			[LEVEL] : 1456000(X)
+			[LEVEL] : 1378000(X)
+			[LEVEL] : 1248000(X)
+			[LEVEL] : 1144000(X)
+			[LEVEL] : 1040000(X)
+			[LEVEL] : 936000(X)
+			[LEVEL] : 819000(X)
+			[LEVEL] : 728000(X)
+			[LEVEL] : 624000(X)
+			[LEVEL] : 520000(X)
+				[TABLE]
+				0 1 
+				1 1 
+				2 1 
+				3 1 
+				4 1 
+				5 1 
+				6 1 
+				7 1 
+				8 0 
+				9 0 
+				10 0 
+				11 0 
+				12 0 
+				13 0 
+				14 0 
+				15 0 
+				16 0 
+				17 0 
+				18 0 
+				19 0 
+				20 0 
+				21 0 
+				22 0 
+				23 0 
+		[DOMAIN NAME] : dvfs_g3d
+		[BOOT LEVEL IDX] : NONE
+		[RESUME LEVEL IDX] : NONE
+		[MAX FREQ] : 0
+		[MIN FREQ] : 4294967295
+		[NUM OF SFR] : 1
+			[SFR ADDRESS] : 1a240140
+		[NUM OF LEVEL] : 12
+			[LEVEL] : 702000(X)
+			[LEVEL] : 676000(X)
+			[LEVEL] : 650000(X)
+			[LEVEL] : 598000(X)
+			[LEVEL] : 572000(X)
+			[LEVEL] : 433000(X)
+			[LEVEL] : 377000(X)
+			[LEVEL] : 325000(X)
+			[LEVEL] : 260000(X)
+			[LEVEL] : 200000(X)
+			[LEVEL] : 156000(X)
+			[LEVEL] : 100000(X)
+				[TABLE]
+				1 
+				2 
+				3 
+				4 
+				5 
+				6 
+				7 
+				8 
+				9 
+				10 
+				11 
+				12 
+		[DOMAIN NAME] : dvfs_mif
+		[BOOT LEVEL IDX] : NONE
+		[RESUME LEVEL IDX] : NONE
+		[MAX FREQ] : 0
+		[MIN FREQ] : 4294967295
+		[NUM OF SFR] : 5
+			[SFR ADDRESS] : 1bc00140
+			[SFR ADDRESS] : 1a240180
+			[SFR ADDRESS] : 1a2401c0
+			[SFR ADDRESS] : 1a241028
+			[SFR ADDRESS] : 1a241824
+		[NUM OF LEVEL] : 10
+			[LEVEL] : 2094000(X)
+			[LEVEL] : 2093000(X)
+			[LEVEL] : 1794000(X)
+			[LEVEL] : 1539000(X)
+			[LEVEL] : 1352000(X)
+			[LEVEL] : 1014000(X)
+			[LEVEL] : 845000(X)
+			[LEVEL] : 676000(X)
+			[LEVEL] : 546000(X)
+			[LEVEL] : 421000(X)
+				[TABLE]
+				0 0 0 6 0 
+				0 0 1 0 0 
+				1 0 1 1 0 
+				2 0 1 2 0 
+				3 0 1 4 0 
+				9 5 1 1 1 
+				9 6 1 1 1 
+				9 7 1 1 1 
+				9 8 1 1 1 
+				9 9 1 1 1 
+		[DOMAIN NAME] : dvfs_int
+		[BOOT LEVEL IDX] : NONE
+		[RESUME LEVEL IDX] : NONE
+		[MAX FREQ] : 0
+		[MIN FREQ] : 4294967295
+		[NUM OF SFR] : 10
+			[SFR ADDRESS] : 1a24100c
+			[SFR ADDRESS] : 1a24105c
+			[SFR ADDRESS] : 1a241068
+			[SFR ADDRESS] : 1a24107c
+			[SFR ADDRESS] : 1a241080
+			[SFR ADDRESS] : 1a241808
+			[SFR ADDRESS] : 1a241850
+			[SFR ADDRESS] : 13c01800
+			[SFR ADDRESS] : 1a241868
+			[SFR ADDRESS] : 1a24186c
+		[NUM OF LEVEL] : 5
+			[LEVEL] : 534000(X)
+			[LEVEL] : 400000(X)
+			[LEVEL] : 267000(X)
+			[LEVEL] : 200000(X)
+			[LEVEL] : 100000(X)
+				[TABLE]
+				0 2 2 1 0 0 1 0 0 0 
+				2 3 1 5 2 0 2 1 0 0 
+				0 3 0 3 0 1 3 3 1 1 
+				2 1 1 5 2 1 7 3 1 1 
+				1 0 1 4 1 4 15 7 4 4 
+		[DOMAIN NAME] : dvfs_intcam
+		[BOOT LEVEL IDX] : NONE
+		[RESUME LEVEL IDX] : NONE
+		[MAX FREQ] : 0
+		[MIN FREQ] : 4294967295
+		[NUM OF SFR] : 6
+			[SFR ADDRESS] : 1a241088
+			[SFR ADDRESS] : 1a24108c
+			[SFR ADDRESS] : 1a241090
+			[SFR ADDRESS] : 1a241878
+			[SFR ADDRESS] : 1a24187c
+			[SFR ADDRESS] : 1a241880
+		[NUM OF LEVEL] : 7
+			[LEVEL] : 690000(X)
+			[LEVEL] : 680000(X)
+			[LEVEL] : 670000(X)
+			[LEVEL] : 660000(X)
+			[LEVEL] : 650000(X)
+			[LEVEL] : 640000(X)
+			[LEVEL] : 630000(X)
+				[TABLE]
+				0 0 0 0 0 0 
+				0 0 0 1 0 1 
+				2 2 3 0 0 0 
+				3 3 0 0 0 1 
+				0 0 0 1 1 2 
+				0 0 3 2 2 1 
+				3 3 3 15 15 15 
+		[DOMAIN NAME] : dvfs_cam
+		[BOOT LEVEL IDX] : NONE
+		[RESUME LEVEL IDX] : NONE
+		[MAX FREQ] : 0
+		[MIN FREQ] : 4294967295
+		[NUM OF SFR] : 6
+			[SFR ADDRESS] : 1a241094
+			[SFR ADDRESS] : 1a2410cc
+			[SFR ADDRESS] : 1a2410d0
+			[SFR ADDRESS] : 1a241884
+			[SFR ADDRESS] : 1a2418b8
+			[SFR ADDRESS] : 1a2418bc
+		[NUM OF LEVEL] : 5
+			[LEVEL] : 690000(X)
+			[LEVEL] : 680000(X)
+			[LEVEL] : 670000(X)
+			[LEVEL] : 660000(X)
+			[LEVEL] : 650000(X)
+				[TABLE]
+				0 1 0 0 0 0 
+				2 1 2 0 0 0 
+				2 3 3 0 0 0 
+				2 1 2 1 1 1 
+				3 0 2 15 15 7 
+		[DOMAIN NAME] : dvfs_iva
+		[BOOT LEVEL IDX] : NONE
+		[RESUME LEVEL IDX] : NONE
+		[MAX FREQ] : 0
+		[MIN FREQ] : 4294967295
+		[NUM OF SFR] : 2
+			[SFR ADDRESS] : 1a241098
+			[SFR ADDRESS] : 1a241888
+		[NUM OF LEVEL] : 6
+			[LEVEL] : 534000(X)
+			[LEVEL] : 467000(X)
+			[LEVEL] : 400000(X)
+			[LEVEL] : 333000(X)
+			[LEVEL] : 167000(X)
+			[LEVEL] : 56000(X)
+				[TABLE]
+				0 0 
+				1 0 
+				2 0 
+				3 0 
+				3 1 
+				3 5 
+		[DOMAIN NAME] : dvfs_disp
+		[BOOT LEVEL IDX] : NONE
+		[RESUME LEVEL IDX] : NONE
+		[MAX FREQ] : 0
+		[MIN FREQ] : 4294967295
+		[NUM OF SFR] : 3
+			[SFR ADDRESS] : 1a241040
+			[SFR ADDRESS] : 1a241000
+			[SFR ADDRESS] : 1a2418c4
+		[NUM OF LEVEL] : 5
+			[LEVEL] : 640000(X)
+			[LEVEL] : 534000(X)
+			[LEVEL] : 333000(X)
+			[LEVEL] : 200000(X)
+			[LEVEL] : 134000(X)
+				[TABLE]
+				0 1 0 
+				3 0 0 
+				1 1 1 
+				3 1 1 
+				3 1 2 
+		[DOMAIN NAME] : dvfs_aud
+		[BOOT LEVEL IDX] : NONE
+		[RESUME LEVEL IDX] : NONE
+		[MAX FREQ] : 0
+		[MIN FREQ] : 4294967295
+		[NUM OF SFR] : 3
+			[SFR ADDRESS] : 18c01000
+			[SFR ADDRESS] : 18c01828
+			[SFR ADDRESS] : 18c01804
+		[NUM OF LEVEL] : 5
+			[LEVEL] : 1180000(X)
+			[LEVEL] : 800000(X)
+			[LEVEL] : 590000(X)
+			[LEVEL] : 394000(X)
+			[LEVEL] : 295000(X)
+				[TABLE]
+				0 0 1 
+				1 0 2 
+				0 1 3 
+				0 2 5 
+				0 3 6 
+		[DOMAIN NAME] : dvfs_npu
+		[BOOT LEVEL IDX] : NONE
+		[RESUME LEVEL IDX] : NONE
+		[MAX FREQ] : 0
+		[MIN FREQ] : 4294967295
+		[NUM OF SFR] : 6
+			[SFR ADDRESS] : 1a2410b0
+			[SFR ADDRESS] : 1a2410ac
+			[SFR ADDRESS] : 1a2410b4
+			[SFR ADDRESS] : 17901804
+			[SFR ADDRESS] : 1a241898
+			[SFR ADDRESS] : 1a24189c
+		[NUM OF LEVEL] : 8
+			[LEVEL] : 933000(X)
+			[LEVEL] : 800000(X)
+			[LEVEL] : 666000(X)
+			[LEVEL] : 400000(X)
+			[LEVEL] : 334000(X)
+			[LEVEL] : 333000(X)
+			[LEVEL] : 222000(X)
+			[LEVEL] : 167000(X)
+				[TABLE]
+				0 0 0 0 0 0 
+				1 1 1 0 0 0 
+				2 1 1 0 0 0 
+				1 3 3 1 0 0 
+				2 1 1 1 1 1 
+				2 2 2 1 1 1 
+				2 1 1 2 2 2 
+				2 1 1 3 5 5 
+		[DOMAIN NAME] : dvfs_score
+		[BOOT LEVEL IDX] : NONE
+		[RESUME LEVEL IDX] : NONE
+		[MAX FREQ] : 0
+		[MIN FREQ] : 4294967295
+		[NUM OF SFR] : 6
+			[SFR ADDRESS] : 1a241048
+			[SFR ADDRESS] : 1a241044
+			[SFR ADDRESS] : 1a24104c
+			[SFR ADDRESS] : 1a24183c
+			[SFR ADDRESS] : 1a241838
+			[SFR ADDRESS] : 1a241840
+		[NUM OF LEVEL] : 6
+			[LEVEL] : 666000(X)
+			[LEVEL] : 534000(X)
+			[LEVEL] : 467000(X)
+			[LEVEL] : 400000(X)
+			[LEVEL] : 200000(X)
+			[LEVEL] : 25000(X)
+				[TABLE]
+				0 0 0 0 0 0 
+				1 1 1 0 0 0 
+				2 2 2 0 0 0 
+				3 3 3 0 0 0 
+				3 3 3 1 1 1 
+				3 2 2 15 15 15 
+		[DOMAIN NAME] : dvfs_mfc
+		[BOOT LEVEL IDX] : NONE
+		[RESUME LEVEL IDX] : NONE
+		[MAX FREQ] : 0
+		[MIN FREQ] : 4294967295
+		[NUM OF SFR] : 4
+			[SFR ADDRESS] : 1a24109c
+			[SFR ADDRESS] : 1a2410a0
+			[SFR ADDRESS] : 1a24188c
+			[SFR ADDRESS] : 1a241890
+		[NUM OF LEVEL] : 6
+			[LEVEL] : 800000(X)
+			[LEVEL] : 666000(X)
+			[LEVEL] : 534000(X)
+			[LEVEL] : 400000(X)
+			[LEVEL] : 267000(X)
+			[LEVEL] : 134000(X)
+				[TABLE]
+				1 3 0 0 
+				2 0 0 1 
+				0 1 1 1 
+				1 3 1 1 
+				1 3 2 2 
+				1 3 5 5 
+		[DOMAIN NAME] : dvs_cp
+		[BOOT LEVEL IDX] : NONE
+		[RESUME LEVEL IDX] : NONE
+		[MAX FREQ] : 0
+		[MIN FREQ] : 4294967295
+		[NUM OF SFR] : 1
+			[SFR ADDRESS] : ffffffff
+		[NUM OF LEVEL] : 4
+			[LEVEL] : 1499000(X)
+			[LEVEL] : 1066000(X)
+			[LEVEL] : 850000(X)
+			[LEVEL] : 533000(X)
+				[TABLE]
+				0 
+				0 
+				0 
+				0 
