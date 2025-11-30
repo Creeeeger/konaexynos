@@ -170,3 +170,29 @@ Example row `598000000` with `P=4, M=184, S=1`:
 - `Fout = 1196 / 2 = 598 MHz`
 
 ----
+
+
+## Next Step:
+
+- Some more levels which can be injected as example:
+
+```
+[PLL NAME] : PLL_G3D
+[PLL TYPE] : 14160
+[NUM OF FREQUENCY] : 13
+    [FREQUENCY] : 754000000  [P] : 4  [M] : 116  [S] : 0  [K] : 0
+    [FREQUENCY] : 702000000  [P] : 4  [M] : 108  [S] : 0  [K] : 0
+    [FREQUENCY] : 676000000  [P] : 4  [M] : 104  [S] : 0  [K] : 0
+    [FREQUENCY] : 650000000  [P] : 4  [M] : 100  [S] : 0  [K] : 0
+    [FREQUENCY] : 598000000  [P] : 4  [M] : 184  [S] : 1  [K] : 0
+    [FREQUENCY] : 572000000  [P] : 4  [M] : 176  [S] : 1  [K] : 0
+    [FREQUENCY] : 432250000  [P] : 4  [M] : 133  [S] : 1  [K] : 0
+    [FREQUENCY] : 377000000  [P] : 4  [M] : 116  [S] : 1  [K] : 0
+    [FREQUENCY] : 325000000  [P] : 4  [M] : 100  [S] : 1  [K] : 0
+    [FREQUENCY] : 260000000  [P] : 4  [M] : 160  [S] : 2  [K] : 0
+    [FREQUENCY] : 199875000  [P] : 4  [M] : 123  [S] : 2  [K] : 0
+    [FREQUENCY] : 156000000  [P] : 4  [M] : 96   [S] : 2  [K] : 0
+    [FREQUENCY] : 99937000   [P] : 4  [M] : 123  [S] : 3  [K] : 0
+```
+
+- Inject new levels before reading into the kernel and done!
