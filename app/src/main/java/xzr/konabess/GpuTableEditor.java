@@ -146,11 +146,10 @@ public class GpuTableEditor {
     /**
      * Checks if the current device is one of the supported Exynos chipsets.
      *
-     * @return true if the chip type matches exynos9820 or exynos9825.
+     * @return true if the chip type matches exynos9820 or exynos9825, exynos9810, exynos990.
      */
     private static boolean isExynos() {
-        return ChipInfo.which == ChipInfo.type.exynos9820
-                || ChipInfo.which == ChipInfo.type.exynos9825;
+        return ChipInfo.which == ChipInfo.type.exynos9820 || ChipInfo.which == ChipInfo.type.exynos9825 || ChipInfo.which == ChipInfo.type.exynos9810|| ChipInfo.which == ChipInfo.type.exynos990;
     }
 
     /**
