@@ -382,8 +382,8 @@ public class KonaBessCore {
         dtbs = new ArrayList<>();
 
         // Supported chip identifier strings and corresponding enum types
-        String[] chipTypes = {"exynos9820", "exynos9825", "exynos990"};
-        ChipInfo.type[] chipInfoTypes = {ChipInfo.type.exynos9820, ChipInfo.type.exynos9825, ChipInfo.type.exynos990};
+        String[] chipTypes = {"exynos9820", "exynos9825", "exynos990", "exynos9810"};
+        ChipInfo.type[] chipInfoTypes = {ChipInfo.type.exynos9820, ChipInfo.type.exynos9825, ChipInfo.type.exynos990, ChipInfo.type.exynos9810};
 
         // Iterate through supported types and test each one
         for (int i = 0; i < chipTypes.length; i++) {

@@ -32,10 +32,14 @@ public class ChipInfo {
         return switch (t) {
             // Exynos 9820 (used in Galaxy S10/S10+) description
             case exynos9820 -> activity.getResources().getString(R.string.e9820);
+
             // Exynos 9825 (used in Galaxy Note10/S10 5G) description
             case exynos9825 -> activity.getResources().getString(R.string.e9825);
 
             case exynos990 -> activity.getResources().getString(R.string.e990);
+
+            case exynos9810 -> activity.getResources().getString(R.string.e9810);
+
             // Fallback for unsupported or unknown types
             default -> activity.getResources().getString(R.string.unknown);
         };
@@ -57,10 +61,14 @@ public class ChipInfo {
          * Samsung Exynos 9825 processor
          */
         exynos9825,
+
+        exynos990,
+
+        exynos9810,
+        
         /**
          * Unrecognized or unspecified processor
          */
-        exynos990,
         unknown
     }
 }

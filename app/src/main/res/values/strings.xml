@@ -45,6 +45,7 @@
     <string name="e9820">Exynos 9820</string>
     <string name="e9825">Exynos 9825</string>
     <string name="e990">Exynos 990</string>
+    <string name="e9810">Exynos 9810</string>
     <string name="toolbar_subtitle">Advanced tuning console</string>
     <string name="chipset_card_title">Chipset overview</string>
     <string name="chipset_card_body">You are currently preparing configuration files for %1$s.</string>

@@ -33,7 +33,9 @@ public class KonaBessStr {
         // Map supported chip types to their string resource IDs
         Map<ChipInfo.type, Integer> chipResourceMap = Map.of(
                 ChipInfo.type.exynos9820, R.string.e9820,
-                ChipInfo.type.exynos9825, R.string.e9825
+                ChipInfo.type.exynos9825, R.string.e9825,
+                ChipInfo.type.exynos9810, R.string.e9810,
+                ChipInfo.type.exynos990, R.string.e990
         );
 
         // Verify that the current chip type is supported
