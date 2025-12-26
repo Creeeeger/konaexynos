@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -156,15 +157,26 @@ public class KonaBessCore {
 
         File dtb = new File("/dev/block/by-name/dtb");
         File dtbo = new File("/dev/block/by-name/dtbo");
+        File boot = new File("/dev/block/by-name/boot");
 
-        if (dtb.exists()) {
-            devPath = dtb.getAbsolutePath();
-            fileNameImg = "dtb.img";
-        } else if (dtbo.exists()) {
-            devPath = dtbo.getAbsolutePath();
-            fileNameImg = "dtbo.img";
+        // Selects device path and image name based on chip
+        if (isExynos9810()) {
+            if (boot.exists()) {
+                devPath = boot.getAbsolutePath();
+                fileNameImg = "boot.img";
+            } else {
+                throw new IOException("Neither /dev/block/by-name/boot exists");
+            }
         } else {
-            throw new IOException("Neither /dev/block/by-name/dtb nor /dev/block/by-name/dtbo exists");
+            if (dtb.exists()) {
+                devPath = dtb.getAbsolutePath();
+                fileNameImg = "dtb.img";
+            } else if (dtbo.exists()) {
+                devPath = dtbo.getAbsolutePath();
+                fileNameImg = "dtbo.img";
+            } else {
+                throw new IOException("Neither /dev/block/by-name/dtb nor /dev/block/by-name/dtbo exists");
+            }
         }
 
         String internalPath = internalBase + "/" + fileNameImg;
@@ -207,6 +219,28 @@ public class KonaBessCore {
         } finally {
             if (process != null) process.destroy();
         }
+    }
+
+    private static boolean isExynos9810() throws IOException {
+        if (fileContainsAny("/proc/cpuinfo", "exynos9810", "exynos 9810", "samsungexynos9810")) {
+            return true;
+        }
+        return fileContainsAny("/proc/cmdline", "exynos9810");
+    }
+
+    private static boolean fileContainsAny(String path, String... needles) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(path)))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String haystack = line.toLowerCase();
+                for (String needle : needles) {
+                    if (haystack.contains(needle.toLowerCase())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -314,7 +348,7 @@ public class KonaBessCore {
         }
 
         // Input DTB file produced by unpackBootImage
-        File inputFile = new File(filesDir, fileName);        
+        File inputFile = new File(filesDir, fileName);
         if (!inputFile.exists()) {
             throw new IOException("Input DTB file does not exist: " + inputFile.getAbsolutePath());
         }
