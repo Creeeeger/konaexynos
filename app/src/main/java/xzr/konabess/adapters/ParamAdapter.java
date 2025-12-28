@@ -12,58 +12,75 @@ import java.util.List;
 
 import xzr.konabess.R;
 
-// Adapter class to provide views for a ListView based on a list of item objects
+/** ListView adapter for rows containing a title and subtitle. */
 public class ParamAdapter extends BaseAdapter {
-    // List of items to display in the ListView
     List<item> items;
-    // Application context, used for inflating layouts
+
     Context context;
 
-    // Constructor to initialize adapter with data and context
+    /**
+     * Creates an adapter backed by the supplied item list.
+     *
+     * @param items mutable rows displayed by the adapter
+     * @param context context used to inflate row layouts
+     */
     public ParamAdapter(List<item> items, Context context) {
         this.items = items;
         this.context = context;
     }
 
-    // Returns the total number of items in the list
+    /** {@inheritDoc} */
     @Override
     public int getCount() {
         return items.size();
     }
 
-    // Returns the item at the specified position
+    /** {@inheritDoc} */
     @Override
     public Object getItem(int position) {
         return items.get(position);
     }
 
-    // Returns the item ID (here, just the position in the list)
+    /**
+     * Returns the row position because the model does not define stable IDs.
+     *
+     * @param position row index
+     * @return {@code position}
+     */
     @Override
     public long getItemId(int position) {
         return position;
     }
 
-    // Provides a view for an adapter view (ListView)
+    /**
+     * Inflates and binds a title/subtitle row.
+     *
+     * <p>The current implementation always inflates a new view and does not reuse {@code convertView}.
+     *
+     * @param position row index
+     * @param convertView reusable view supplied by the parent; currently ignored
+     * @param parent parent requesting the row
+     * @return bound row view
+     */
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        // Disable ViewHolder optimization and always inflate a new view (not recommended for large lists)
         @SuppressLint({"ViewHolder", "InflateParams"})
         View view = LayoutInflater.from(context).inflate(R.layout.param_list_item, null);
 
-        // Find the title and subtitle TextViews in the inflated layout
         TextView title = view.findViewById(R.id.title);
         TextView subtitle = view.findViewById(R.id.subtitle);
 
-        // Set text for title and subtitle based on the item at the current position
         title.setText(items.get(position).title);
         subtitle.setText(items.get(position).subtitle);
 
         return view;
     }
 
-    // Static inner class representing a single data item with a title and subtitle
+    /** Mutable title/subtitle model shared by the list and RecyclerView adapters. */
     public static class item {
+        /** Primary row text. */
         public String title;
+        /** Optional secondary row text. */
         public String subtitle;
     }
 }
