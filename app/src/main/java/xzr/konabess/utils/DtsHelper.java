@@ -1,29 +1,18 @@
 package xzr.konabess.utils;
 
-/**
- * Utility class for decoding various DTS-formatted integer and hex lines,
- * and converting string inputs to hexadecimal representation.
- * <p>
- * Note: Methods throw IllegalArgumentException for invalid formats or inputs.
- * Forward-thinking: consider refactoring replaceAll chains for performance
- * and extending to support larger-than-3-byte stringed ints.
- */
+/** Parses scalar values used by the decompiled device-tree tables. */
 public class DtsHelper {
-
     /**
-     * Decode a string-encoded integer consisting of exactly 3 characters.
-     * Supports common escape sequences (e.g., \n, \t, etc.).
-     * <p>
-     * Algorithm: Clean input of quotes, semicolons, and escaped quotes,
-     * translate escape sequences to their char equivalents, then combine
-     * three bytes into a 24-bit integer.
+     * Decodes a quoted three-character DTS value into a packed integer.
      *
-     * @param input Raw DTS string, possibly including escapes and quotes
-     * @return 24-bit integer result from 3-character string
-     * @throws IllegalArgumentException if cleaned input length != 3
+     * <p>DTS escape sequences are converted first. Each resulting character is appended by shifting
+     * the previous value eight bits to the left.
+     *
+     * @param input quoted DTS value, optionally followed by a semicolon
+     * @return packed value in source order
+     * @throws IllegalArgumentException if normalization does not produce exactly three characters
      */
     public static int decode_stringed_int(String input) throws IllegalArgumentException {
-        // Strip wrapping quotes, semicolons, and escaped double-quotes
         input = input.replaceAll("\"|;|\\\\\"", "")
                 .replace("\\a", "\7")
                 .replace("\\b", "\b")
@@ -43,25 +32,21 @@ public class DtsHelper {
 
         int result = 0;
         for (int i = 0; i < input.length(); i++) {
-            // Shift left 8 bits and append this character's byte value
             result = (result << 8) | input.charAt(i);
         }
         return result;
     }
 
     /**
-     * Decode a line representing an integer value in decimal, hex, or string format.
-     * <p>
-     * If the line contains a double-quote, it is treated as a 3-character string and
-     * passed to {@link #decode_stringed_int(String)}. If it starts with 0x or 0X,
-     * parsed as hexadecimal. Otherwise parsed as decimal.
+     * Parses one scalar token as a quoted three-character value, hexadecimal integer, or decimal
+     * integer.
      *
-     * @param line Input line (name=value pair expected, but only value is processed)
-     * @return intLine containing original line and parsed long value
-     * @throws IllegalArgumentException for invalid number formats
+     * @param line scalar value token
+     * @return holder containing the trimmed token and parsed value
+     * @throws IllegalArgumentException if the token has an unsupported numeric form
      */
     public static intLine decode_int_line(String line) throws IllegalArgumentException {
-        line = line.trim(); // Remove leading/trailing whitespace
+        line = line.trim();
 
         intLine intLine = new intLine();
         intLine.name = line;
@@ -69,13 +54,10 @@ public class DtsHelper {
 
         try {
             if (value.contains("\"")) {
-                // String-encoded integer
                 intLine.value = decode_stringed_int(value);
             } else if (value.startsWith("0x") || value.startsWith("0X")) {
-                // Hexadecimal literal
                 intLine.value = Long.parseLong(value.substring(2).trim(), 16);
             } else {
-                // Decimal literal
                 intLine.value = Long.parseLong(value.trim());
             }
         } catch (NumberFormatException e) {
@@ -87,11 +69,10 @@ public class DtsHelper {
     }
 
     /**
-     * Wrap a raw hex line into a hexLine object without parsing.
-     * Useful for forwarding hex strings unmodified.
+     * Wraps a raw table token without converting its value.
      *
-     * @param line Raw hex string
-     * @return hexLine containing name and unmodified hex value
+     * @param line token to preserve
+     * @return holder whose name and value both contain the trimmed token
      */
     public static hexLine decode_hex_line(String line) {
         line = line.trim();
@@ -102,11 +83,11 @@ public class DtsHelper {
     }
 
     /**
-     * Convert a decimal string into a hexadecimal string (uppercase) prefixed with 0x.
+     * Converts a signed decimal integer string to an uppercase hexadecimal token.
      *
-     * @param input Decimal number as string
-     * @return Hexadecimal representation, e.g. "0x1A"
-     * @throws IllegalArgumentException if input is not a valid integer
+     * @param input decimal integer
+     * @return value prefixed with {@code 0x}
+     * @throws IllegalArgumentException if {@code input} is not a Java {@code int}
      */
     public static String inputToHex(String input) {
         try {
@@ -117,19 +98,19 @@ public class DtsHelper {
         }
     }
 
-    /**
-     * Simple holder for an integer line and its parsed value.
-     */
+    /** Parsed scalar token and its numeric value. */
     public static class intLine {
-        public String name;  // Original line content
-        public long value;   // Parsed numeric value
+        /** Trimmed source token. */
+        public String name;
+        /** Parsed numeric representation. */
+        public long value;
     }
 
-    /**
-     * Simple holder for a hex line, preserving raw value.
-     */
+    /** Raw token preserved for display or later serialization. */
     public static class hexLine {
-        public String name;  // Original line content
-        public String value; // Raw hex string
+        /** Trimmed source token. */
+        public String name;
+        /** Unparsed token value. */
+        public String value;
     }
 }
