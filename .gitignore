@@ -27,6 +27,7 @@ local.properties
 *.dex
 *.class
 *.jar
+!gradle/wrapper/gradle-wrapper.jar
 *.keystore
 
 # OS specific
