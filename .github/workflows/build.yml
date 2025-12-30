@@ -60,8 +60,8 @@ jobs:
     - name: Validate Gradle Wrapper
       run: |
         if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
-          echo "Gradle wrapper jar not found! Regenerating wrapper..."
-          gradle wrapper
+          echo "Error: gradle/wrapper/gradle-wrapper.jar is missing from the repository."
+          exit 1
         fi
 
     # Step 9: Build APK
