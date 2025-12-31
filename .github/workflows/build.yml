@@ -17,11 +17,11 @@ jobs:
     steps:
     # Step 1: Checkout Code
     - name: Checkout Code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     # Step 2: Setup Java Environment
     - name: Setup Java Environment
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v5
       with:
         distribution: 'temurin'  # Use Eclipse Temurin OpenJDK
         java-version: '21'       # Use Java 21
@@ -34,7 +34,7 @@ jobs:
 
     # Step 4: Setup Android SDK
     - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
+      uses: android-actions/setup-android@v4
 
     # Step 5: Verify Java and Android SDK Versions
     - name: Verify Environment Configuration
@@ -81,7 +81,7 @@ jobs:
 
     # Step 11: Upload APK Artifact
     - name: Upload APK Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: konaexynos-apks # Generic name to handle multiple APKs
         path: "**/*.apk"       # Upload all APK files found in the project
