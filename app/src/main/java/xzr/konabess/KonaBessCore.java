@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import xzr.konabess.utils.AssetsUtil;
 
@@ -26,6 +27,8 @@ import xzr.konabess.utils.AssetsUtil;
  * advances.
  */
 public class KonaBessCore {
+    private static final long ROOT_CHECK_TIMEOUT_SECONDS = 15L;
+
     private static final String[] fileList = {
             "dtc",
             "extract_dtb",
@@ -111,6 +114,55 @@ public class KonaBessCore {
                 throw new IOException("File is not executable: " + destination.getAbsolutePath());
             }
         }
+    }
+
+    /**
+     * Checks whether {@code su} can execute a command as root.
+     *
+     * <p>This method blocks while the root manager handles the request and must therefore be called
+     * from a background thread. Missing or denied root access, command failures, and timeouts are
+     * all reported as {@code false}.
+     *
+     * @return {@code true} only when {@code su -c id} reports UID 0
+     */
+    public static boolean hasRootAccess() {
+        Process process = null;
+
+        try {
+            process = new ProcessBuilder("su", "-c", "id")
+                    .redirectErrorStream(true)
+                    .start();
+
+            if (!process.waitFor(ROOT_CHECK_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                process.destroyForcibly();
+                return false;
+            }
+
+            if (process.exitValue() != 0) {
+                return false;
+            }
+
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.contains("uid=0")) {
+                        return true;
+                    }
+                }
+            }
+        } catch (IOException ignored) {
+            return false;
+        } catch (InterruptedException ignored) {
+            Thread.currentThread().interrupt();
+            return false;
+        } finally {
+            if (process != null && process.isAlive()) {
+                process.destroyForcibly();
+            }
+        }
+
+        return false;
     }
 
     /**
