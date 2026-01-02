@@ -34,6 +34,8 @@ import xzr.konabess.utils.DialogUtil;
 public class MainActivity extends AppCompatActivity {
     /** Optional navigation handler installed by the current editor screen. */
     onBackPressedListener onBackPressedListener = null;
+    /** Whether privileged workflows are available for the current activity session. */
+    private boolean rootAvailable;
 
     /**
      * Resolves a color attribute from the active theme.
@@ -74,7 +76,32 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        new unpackLogic().start();
+        new Thread(() -> {
+            boolean hasRoot = KonaBessCore.hasRootAccess();
+
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) {
+                    return;
+                }
+
+                rootAvailable = hasRoot;
+                if (rootAvailable) {
+                    new unpackLogic().start();
+                } else {
+                    showMainView();
+                    showMissingRootDialog();
+                }
+            });
+        }, "root-access-check").start();
+    }
+
+    /** Shows the non-blocking warning presented whenever the app starts without root access. */
+    private void showMissingRootDialog() {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.missing_root_title)
+                .setMessage(R.string.missing_root_message)
+                .setPositiveButton(R.string.continue_without_root, null)
+                .show();
     }
 
     /**
@@ -176,7 +203,9 @@ public class MainActivity extends AppCompatActivity {
         MaterialCardView actionsCard = createSurfaceCard();
         LinearLayout actionsContent = createCardContentLayout();
         actionsContent.addView(createHeadlineTextView(R.string.actions_card_title));
-        actionsContent.addView(createBodyTextView(getString(R.string.actions_card_body)));
+        actionsContent.addView(createBodyTextView(getString(
+                rootAvailable ? R.string.actions_card_body : R.string.root_actions_disabled
+        )));
 
         LinearLayout buttonColumn = new LinearLayout(this);
         buttonColumn.setOrientation(LinearLayout.VERTICAL);
@@ -238,6 +267,7 @@ public class MainActivity extends AppCompatActivity {
         button.setRippleColor(ColorStateList.valueOf(primary));
         button.setStrokeWidth(0);
         button.setOnClickListener(onClickListener);
+        button.setEnabled(rootAvailable);
         container.addView(button);
     }
 

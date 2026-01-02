@@ -47,6 +47,10 @@
     <string name="e990">Exynos 990</string>
     <string name="e9810">Exynos 9810</string>
     <string name="toolbar_subtitle">Advanced tuning console</string>
+    <string name="missing_root_title">Root access unavailable</string>
+    <string name="missing_root_message">Root access is unavailable or was denied. You can continue using KonaExynos, but editing and flashing actions are disabled.</string>
+    <string name="continue_without_root">Continue</string>
+    <string name="root_actions_disabled">Root access is required for these actions. The app is currently running in read-only mode.</string>
     <string name="chipset_card_title">Chipset overview</string>
     <string name="chipset_card_body">You are currently preparing configuration files for %1$s.</string>
     <string name="chipset_unknown_hint">Chipset information becomes available after KonaExynos finishes extracting your boot image.</string>
