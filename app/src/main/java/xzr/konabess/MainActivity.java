@@ -28,16 +28,19 @@ import java.util.ArrayList;
 import xzr.konabess.adapters.ParamAdapter;
 import xzr.konabess.utils.DialogUtil;
 
+/**
+ * Hosts environment preparation, image workflows, and the programmatically built editor interface.
+ */
 public class MainActivity extends AppCompatActivity {
-    // Listener for handling back press events; can be set by child components
+    /** Optional navigation handler installed by the current editor screen. */
     onBackPressedListener onBackPressedListener = null;
 
     /**
-     * Retrieve a Material You dynamic color attribute from the current theme.
+     * Resolves a color attribute from the active theme.
      *
-     * @param context The context used to access the theme
-     * @param attr    The attribute resource ID (e.g., a Material color attribute)
-     * @return The resolved color integer value
+     * @param context themed context
+     * @param attr color attribute resource
+     * @return resolved packed color
      */
     private static int getDynamicColor(Context context, int attr) {
         TypedValue typedValue = new TypedValue();
@@ -45,39 +48,40 @@ public class MainActivity extends AppCompatActivity {
         return typedValue.data;
     }
 
+    /**
+     * Applies dynamic color, prepares bundled tools, and starts initial image extraction.
+     *
+     * @param savedInstanceState previously saved activity state
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Apply Material You dynamic color theming to all activities if supported (Android 12+)
         DynamicColors.applyToActivitiesIfAvailable(getApplication());
 
-        // Initialize ChipInfo state to unknown before any logic runs
         ChipInfo.which = ChipInfo.type.unknown;
 
-        // Append the app version name to the Activity's title for easy reference
         try {
             setTitle(getTitle() + " " + getPackageManager().getPackageInfo(getPackageName(), 0).versionName);
         } catch (PackageManager.NameNotFoundException ignored) {
-            // If version info is unavailable, ignore silently
         }
 
-        // Prepare the environment for KonaBessCore; show error dialog on failure
         try {
             KonaBessCore.cleanEnv(this);
             KonaBessCore.setupEnv(this);
         } catch (Exception e) {
             DialogUtil.showError(this, R.string.environ_setup_failed);
-            return; // Abort initialization if environment setup fails
+            return;
         }
 
-        // Kick off unpacking logic on a background thread
         new unpackLogic().start();
     }
 
+    /**
+     * Delegates back navigation to the active editor screen when one has registered a handler.
+     */
     @Override
     public void onBackPressed() {
-        // If a custom back press listener is set, delegate to it; otherwise, perform default
         if (onBackPressedListener != null) {
             onBackPressedListener.onBackPressed();
         } else {
@@ -86,7 +90,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Build and display the main user interface programmatically.
+     * Replaces the activity content with the detected-chip summary, workflow actions, and editor
+     * workspace.
      */
     void showMainView() {
         onBackPressedListener = null;
@@ -208,7 +213,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Adds a Material 3 styled button to the primary action column.
+     * Adds a full-width workflow button to an action container.
+     *
+     * @param container layout receiving the button
+     * @param textId button-label resource
+     * @param onClickListener workflow started by the button
      */
     private void addActionButton(LinearLayout container, int textId, View.OnClickListener onClickListener) {
         MaterialButton button = new MaterialButton(this);
@@ -232,6 +241,11 @@ public class MainActivity extends AppCompatActivity {
         container.addView(button);
     }
 
+    /**
+     * Creates the vertical content layout used inside main-screen cards.
+     *
+     * @return match-width, wrap-content layout
+     */
     private LinearLayout createCardContentLayout() {
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -242,6 +256,11 @@ public class MainActivity extends AppCompatActivity {
         return content;
     }
 
+    /**
+     * Creates a main-screen card using current surface and outline colors.
+     *
+     * @return configured empty card
+     */
     private MaterialCardView createSurfaceCard() {
         MaterialCardView card = new MaterialCardView(this, null, R.style.Widget_Material3_CardView_Filled);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
@@ -260,6 +279,12 @@ public class MainActivity extends AppCompatActivity {
         return card;
     }
 
+    /**
+     * Creates a card heading.
+     *
+     * @param textRes heading resource
+     * @return themed heading view
+     */
     private MaterialTextView createHeadlineTextView(int textRes) {
         MaterialTextView textView = new MaterialTextView(this);
         textView.setText(textRes);
@@ -268,6 +293,12 @@ public class MainActivity extends AppCompatActivity {
         return textView;
     }
 
+    /**
+     * Creates card body text with standard spacing and surface-variant coloring.
+     *
+     * @param text body content
+     * @return themed body view
+     */
     private MaterialTextView createBodyTextView(String text) {
         MaterialTextView textView = new MaterialTextView(this);
         textView.setText(text);
@@ -282,55 +313,68 @@ public class MainActivity extends AppCompatActivity {
         return textView;
     }
 
+    /**
+     * Creates card body text from a string resource.
+     *
+     * @param textRes body resource
+     * @return themed body view
+     */
     private MaterialTextView createBodyTextView(int textRes) {
         return createBodyTextView(getString(textRes));
     }
 
+    /**
+     * Converts a density-independent size to rounded physical pixels.
+     *
+     * @param value size in dp
+     * @return size in pixels
+     */
     private int dp(int value) {
         float density = getResources().getDisplayMetrics().density;
         return Math.round(value * density);
     }
 
-    // Abstract listener to handle custom back press behavior
+    /** Navigation callback installed by editor subpages. */
     public static abstract class onBackPressedListener {
+        /** Handles a back press for the active subpage. */
         public abstract void onBackPressed();
     }
 
-    // Thread class handling repacking and flashing logic
+    /** Background workflow that compiles, repacks, and flashes the edited image. */
     class repackLogic extends Thread {
-        private String errorMessage = "";          // To store any error messages encountered
-        private AlertDialog waitingDialog;          // Dialog shown during long operations
+        private String errorMessage = "";
+        private AlertDialog waitingDialog;
 
+        /**
+         * Executes repacking and flashing in sequence, stopping at the first failed stage.
+         */
         @Override
         public void run() {
-            // Step 1: Repacking Process
             showWaitDialog(R.string.repacking);
             if (!performRepack()) {
-                // If repack fails, hide dialog and show detailed error
                 dismissWaitDialog();
                 showDetailedError(errorMessage);
                 return;
             }
-            // Repacking succeeded, dismiss wait dialog
+
             dismissWaitDialog();
 
-            // Step 2: Flashing Process
             showWaitDialog(R.string.flashing_boot);
             if (!performFlashing()) {
-                // If flashing fails, hide dialog and show simple error
                 dismissWaitDialog();
                 showErrorDialog(R.string.flashing_failed);
                 return;
             }
-            // Flashing succeeded, dismiss wait dialog
+
             dismissWaitDialog();
 
-            // Step 3: Prompt user to reboot the device
             showRebootDialog();
         }
 
         /**
-         * Shows a styled wait dialog with the given message resource
+         * Shows a progress dialog on the UI thread.
+         *
+         * @param messageId progress-message resource
          */
         private void showWaitDialog(int messageId) {
             runOnUiThread(() -> {
@@ -339,9 +383,7 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        /**
-         * Dismisses the currently active wait dialog if it's showing
-         */
+        /** Dismisses the active progress dialog on the UI thread. */
         private void dismissWaitDialog() {
             runOnUiThread(() -> {
                 if (waitingDialog != null && waitingDialog.isShowing()) {
@@ -351,46 +393,54 @@ public class MainActivity extends AppCompatActivity {
         }
 
         /**
-         * Handles the repacking process and captures any exception message
+         * Compiles and repacks the edited device tree.
+         *
+         * @return {@code true} on success; on failure, stores the exception message
          */
         private boolean performRepack() {
             try {
-                KonaBessCore.dts2bootImage(MainActivity.this);  // Convert DTS to boot image
-                return true; // Success
+                KonaBessCore.dts2bootImage(MainActivity.this);
+                return true;
             } catch (Exception e) {
-                errorMessage = e.getMessage();  // Store error for display
-                return false; // Failure
+                errorMessage = e.getMessage();
+                return false;
             }
         }
 
         /**
-         * Handles the flashing process and returns success or failure
+         * Writes the generated image to the selected block partition.
+         *
+         * @return {@code true} when the root write completes successfully
          */
         private boolean performFlashing() {
             try {
-                KonaBessCore.writeDtbImage(MainActivity.this); // Write DTB image to device
-                return true; // Success
+                KonaBessCore.writeDtbImage(MainActivity.this);
+                return true;
             } catch (Exception e) {
-                return false; // Failure, no detailed message stored
+                return false;
             }
         }
 
         /**
-         * Displays a detailed error dialog with provided details
+         * Displays repack diagnostics on the UI thread.
+         *
+         * @param details diagnostic text
          */
         private void showDetailedError(String details) {
             runOnUiThread(() -> DialogUtil.showDetailedError(MainActivity.this, 2131689664, details));
         }
 
         /**
-         * Displays a simple error dialog using a string resource
+         * Displays a resource-backed error on the UI thread.
+         *
+         * @param messageRes error-message resource
          */
         private void showErrorDialog(int messageRes) {
             runOnUiThread(() -> DialogUtil.showError(MainActivity.this, messageRes));
         }
 
         /**
-         * Shows a confirmation dialog for rebooting the device
+         * Prompts for an immediate reboot after flashing and reports reboot failures.
          */
         private void showRebootDialog() {
             runOnUiThread(() -> new MaterialAlertDialogBuilder(MainActivity.this)
@@ -398,41 +448,43 @@ public class MainActivity extends AppCompatActivity {
                     .setMessage(R.string.reboot_complete_msg)
                     .setPositiveButton(R.string.yes, (dialog, which) -> {
                         try {
-                            KonaBessCore.reboot();  // Attempt device reboot
+                            KonaBessCore.reboot();
                         } catch (IOException e) {
-                            showErrorDialog(R.string.failed_reboot);  // Show error if reboot fails
+                            showErrorDialog(R.string.failed_reboot);
                         }
                     })
-                    .setNegativeButton(R.string.no, null) // Do nothing on "No"
+                    .setNegativeButton(R.string.no, null)
                     .create()
                     .show());
         }
     }
 
-    // Thread class handling unpacking logic
+    /** Background workflow that copies, extracts, decompiles, and identifies the active image. */
     class unpackLogic extends Thread {
-        private String errorMessage = "";  // To capture error details during steps
-        private int dtbIndex;               // To store selected DTB index after compatibility check
-        private AlertDialog waitingDialog;  // Dialog shown during long operations
+        private String errorMessage = "";
+        private int dtbIndex;
+        private AlertDialog waitingDialog;
 
+        /**
+         * Copies the source partition, extracts and decompiles its DTB, detects the chip, and opens
+         * target selection.
+         */
         @Override
         public void run() {
-            // Step 1: Retrieve boot image; exit on failure
             if (!performStep(() -> {
                 try {
-                    KonaBessCore.getDtImage(MainActivity.this); // Get DT image from boot
+                    KonaBessCore.getDtImage(MainActivity.this);
                 } catch (IOException e) {
-                    throw new RuntimeException(e); // Wrap and propagate
+                    throw new RuntimeException(e);
                 }
             })) {
                 showErrorDialog(R.string.failed_get_boot);
                 return;
             }
 
-            // Step 2: Unpack boot image to DTS; show detailed error if fails
             if (!performStepWithErrorDetails(R.string.unpacking, () -> {
                 try {
-                    KonaBessCore.dtbImage2dts(MainActivity.this); // Convert DTB image to DTS files
+                    KonaBessCore.dtbImage2dts(MainActivity.this);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -441,15 +493,14 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
-            // Step 3: Check device compatibility and retrieve DTB index
             if (!performStepWithErrorDetails(R.string.checking_device, () -> {
                 try {
-                    KonaBessCore.checkDevice(MainActivity.this); // Verify device compatibility
+                    KonaBessCore.checkDevice(MainActivity.this);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
                 try {
-                    dtbIndex = KonaBessCore.getDtbIndex(); // Get default or suggested DTB index
+                    dtbIndex = KonaBessCore.getDtbIndex();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -458,82 +509,80 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
-            // Step 4: Handle user selection of DTB variant
             handleDtbSelection();
         }
 
         /**
-         * Performs a processing step with a wait dialog; returns success state
+         * Runs an initialization step while showing the generic progress message.
+         *
+         * @param task blocking operation
+         * @return {@code true} when the task completes without an exception
          */
         private boolean performStep(Runnable task) {
-            showWaitDialog(R.string.wait); // Show generic wait message
+            showWaitDialog(R.string.wait);
             try {
-                task.run();                // Execute provided task
-                return true;               // Return success if no exception
-            } catch (Exception e) {
-                return false;              // Return failure on exception
-            } finally {
-                dismissWaitDialog();       // Always dismiss dialog afterwards
-            }
-        }
-
-        /**
-         * Performs a processing step with a wait dialog and captures error messages.
-         */
-        private boolean performStepWithErrorDetails(int messageId, Runnable task) {
-            // Show a blocking wait dialog on the UI with the given message resource ID
-            showWaitDialog(messageId);
-            try {
-                // Execute the provided task on the current thread
                 task.run();
-                // If no exception occurred, return true to indicate success
                 return true;
             } catch (Exception e) {
-                // Capture the exception message for later use (e.g., in an error dialog)
-                errorMessage = e.getMessage();
-                // Return false to indicate that the task failed
                 return false;
             } finally {
-                // Always dismiss the wait dialog regardless of success or failure
                 dismissWaitDialog();
             }
         }
 
         /**
-         * Displays a DTB selection dialog.
+         * Runs an initialization step and retains its exception message for a detailed error.
+         *
+         * @param messageId progress-message resource
+         * @param task blocking operation
+         * @return {@code true} when the task completes without an exception
+         */
+        private boolean performStepWithErrorDetails(int messageId, Runnable task) {
+            showWaitDialog(messageId);
+            try {
+                task.run();
+
+                return true;
+            } catch (Exception e) {
+                errorMessage = e.getMessage();
+
+                return false;
+            } finally {
+                dismissWaitDialog();
+            }
+        }
+
+        /**
+         * Activates the only detected target or displays a non-cancelable target picker.
+         *
+         * <p>The kernel DTBO index marks the likely list entry when multiple targets are available.
          */
         private void handleDtbSelection() {
             runOnUiThread(() -> {
-                // If there are no DTBs available, show an incompatibility error and exit
                 if (KonaBessCore.dtbs.isEmpty()) {
                     showErrorDialog(R.string.incompatible_device);
                     return;
                 }
 
-                // If exactly one DTB is available, auto-select it and proceed to the main view
                 if (KonaBessCore.dtbs.size() == 1) {
                     KonaBessCore.chooseTarget(KonaBessCore.dtbs.get(0), MainActivity.this);
                     showMainView();
                     return;
                 }
 
-                // Create a ListView to display multiple DTB options
                 ListView listView = new ListView(MainActivity.this);
                 ArrayList<ParamAdapter.item> items = new ArrayList<>();
 
-                // Populate the list with each DTB's ID and type description
                 for (KonaBessCore.dtb dtb : KonaBessCore.dtbs) {
                     items.add(new ParamAdapter.item() {{
                         title = dtb.id + " " + ChipInfo.name2ChipDesc(dtb.type, MainActivity.this);
-                        // Mark the current DTB index with a subtitle hint
+
                         subtitle = dtb.id == dtbIndex ? MainActivity.this.getString(R.string.possible_dtb) : "";
                     }});
                 }
 
-                // Attach the custom adapter to the ListView
                 listView.setAdapter(new ParamAdapter(items, MainActivity.this));
 
-                // Build and show a non-cancelable dialog with the DTB list
                 AlertDialog dialog = new MaterialAlertDialogBuilder(MainActivity.this)
                         .setTitle(R.string.select_dtb_title)
                         .setMessage(R.string.select_dtb_msg)
@@ -542,7 +591,6 @@ public class MainActivity extends AppCompatActivity {
                         .create();
                 dialog.show();
 
-                // Handle user selection: choose the selected DTB, dismiss dialog, and show main view
                 listView.setOnItemClickListener((parent, view, position, id) -> {
                     KonaBessCore.chooseTarget(KonaBessCore.dtbs.get(position), MainActivity.this);
                     dialog.dismiss();
@@ -552,22 +600,20 @@ public class MainActivity extends AppCompatActivity {
         }
 
         /**
-         * Shows a styled wait dialog.
+         * Shows a progress dialog on the UI thread.
+         *
+         * @param messageId progress-message resource
          */
         private void showWaitDialog(int messageId) {
             runOnUiThread(() -> {
-                // Create and display a waiting dialog with a spinner and the given message
                 waitingDialog = DialogUtil.getWaitDialog(MainActivity.this, messageId);
                 waitingDialog.show();
             });
         }
 
-        /**
-         * Dismisses the active wait dialog.
-         */
+        /** Dismisses the active progress dialog on the UI thread. */
         private void dismissWaitDialog() {
             runOnUiThread(() -> {
-                // Safely dismiss the dialog if it exists and is currently visible
                 if (waitingDialog != null && waitingDialog.isShowing()) {
                     waitingDialog.dismiss();
                 }
@@ -575,21 +621,24 @@ public class MainActivity extends AppCompatActivity {
         }
 
         /**
-         * Displays a simple error dialog.
+         * Displays a resource-backed error on the UI thread.
+         *
+         * @param messageId error-message resource
          */
         private void showErrorDialog(int messageId) {
             runOnUiThread(() ->
-                    // Use a utility method to show a standard error alert with the given message
                     DialogUtil.showError(MainActivity.this, messageId)
             );
         }
 
         /**
-         * Displays a detailed error dialog.
+         * Displays initialization diagnostics on the UI thread.
+         *
+         * @param titleId error-summary resource
+         * @param details diagnostic text
          */
         private void showDetailedErrorDialog(int titleId, String details) {
             runOnUiThread(() ->
-                    // Show an error dialog including both a title and detailed message text
                     DialogUtil.showDetailedError(MainActivity.this, titleId, details)
             );
         }

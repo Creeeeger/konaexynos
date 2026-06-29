@@ -1,21 +1,22 @@
 package android.os;
 
-// Suppresses warnings for unused code and redundant suppression.
-// Often used in stub or template classes.
+/**
+ * Compile-time declaration of Android's hidden system-property API.
+ *
+ * <p>The framework implementation is resolved from the device boot class path. The local method
+ * body exists only to make the hidden signature available to the compiler.
+ */
 @SuppressWarnings({"unused", "RedundantSuppression"})
 public class SystemProperties {
-
     /**
-     * Gets the system property for the given key.
+     * Returns an Android system property from the framework implementation.
      *
-     * @param key Property name.
-     * @param def Default value if the property is not set.
-     * @return Value of the property, or def if not found.
-     * <p>
-     * Note: In this stub, the method always throws RuntimeException.
-     * In real Android, this fetches system properties.
+     * @param key property name
+     * @param def value returned by Android when the property is unset
+     * @return property value, or {@code def} when unset
+     * @throws RuntimeException if the compile-time stub is invoked directly
      */
     public static String get(String key, String def) {
-        throw new RuntimeException("Stub!"); // Method not implemented (stub for compilation)
+        throw new RuntimeException("Stub!");
     }
 }
