@@ -14,6 +14,24 @@ A simple Android app that lets you **edit custom GPU frequency tables without re
 
 ---
 
+## Origin and Attribution
+
+KonaExynos is an Exynos-focused fork and substantial adaptation of
+[KonaBess](https://github.com/xzr467706992/KonaBess) by
+[xzr467706992](https://github.com/xzr467706992). It retains parts of the
+original application architecture and the `xzr.konabess` package namespace.
+
+This fork replaces the original Snapdragon-oriented workflow with support for
+Exynos 9810, 9820, and 9825 devices. Its changes include Exynos GPU-table
+parsing and editing, device-tree extraction and selection, image repacking and
+flashing, chipset detection, root-state handling, and an updated interface.
+
+Copyright for code inherited from KonaBess remains with its original authors.
+KonaExynos and its modifications are distributed under the
+[GNU General Public License v3.0](LICENSE).
+
+---
+
 ## How does it work?
 
 1. **Unpacks** the DTB image from your device.
@@ -81,16 +99,18 @@ For `K=0` (integer-N), the typical relationship is:
 
 Where:
 
-- `P` = pre-divider  
-- `M` = feedback multiplier  
-- `S` = post-divider exponent (divide by 2^S)  
+- `P` = pre-divider
+- `M` = feedback multiplier
+- `S` = post-divider exponent (divide by 2^S)
 - `K` = fractional part (unused here because `K=0`)
-
 
 From the table values, the **reference clock** resolves cleanly to:
 
 - **Fref ≈ 26 MHz**
 
-
 ## Exynos9820 Kernel
-- After extensive testing and trying i came to the result. In the https://github.com/Creeeeger/9820_kernel kernel are in the forOC folder the 2 files which need to be modded and changed in order to increase clocks
+
+- After extensive testing and experimentation, I came to the conclusion that the two files in the forOC folder of
+  the https://github.com/Creeeeger/9820_kernel kernel are the ones that need to be modified in order to increase the
+  clock
+  speeds.
